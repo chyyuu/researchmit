@@ -1,3 +1,7 @@
+
+
+Xi Wang tell me a powerful grep replacement tool: ack-grep
+
 ​﻿read
 http://clang.llvm.org/get_started.html
 to install llvm clang  (should use svn trunk code)

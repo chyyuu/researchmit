@@ -1,0 +1,98 @@
+sed 's/#if \(defined(_LINUX)\)/#if defined(XV6)\n#include "acpica-xv6.h"\n#elif \1/' kernel/acpica/source/include/platform/acenv.h > kernel/acpica/source/include/platform/acenv.h.gen.tmp
+cmp kernel/acpica/source/include/platform/acenv.h.gen.tmp kernel/acpica/source/include/platform/acenv.h.gen || mv kernel/acpica/source/include/platform/acenv.h.gen.tmp kernel/acpica/source/include/platform/acenv.h.gen
+  GEN    o.qemu/kernel/version.cc
+mkdir -p o.qemu/kernel
+echo "const char *xv6_version_string = \"$(date)\";" > o.qemu/kernel/version.cc.tmp
+REL="$(git describe --long --dirty=+)"; \
+		echo "const char *xv6_release_string = \"$REL\";" >> o.qemu/kernel/version.cc.tmp
+cmp -s o.qemu/kernel/version.cc.tmp o.qemu/kernel/version.cc || mv o.qemu/kernel/version.cc.tmp o.qemu/kernel/version.cc
+  CXX    o.qemu/kernel/version.o
+mkdir -p o.qemu/kernel
+g++ -static -DXV6_HW=qemu -DXV6 -DCODEX=0 -fno-builtin -fno-strict-aliasing -fno-omit-frame-pointer -fms-extensions -mno-red-zone -fno-stack-protector -I/usr/lib/gcc/x86_64-linux-gnu/4.7/include -g -MD -MP -O3 -Wall -Werror -DHW_qemu --sysroot=o.qemu/sysroot -iquote include -iquoteo.qemu/include -iquote libutil/include -Istdinc  -I../mtrace -include param.h -include libutil/include/compiler.h -std=c++0x -Wno-sign-compare -Wno-delete-non-virtual-dtor -Ikernel/acpica/source/include -mcmodel=kernel -DXV6_KERNEL -mno-sse -fnothrow-opt -Wnoexcept -DEXCEPTIONS=1 -c -o o.qemu/kernel/version.o o.qemu/kernel/version.cc
+  GEN    o.qemu/kernel/kconfig.cc
+mkdir -p o.qemu/kernel
+( \
+	echo "#define STR_1(x...) #x"; \
+	echo "#define STR(x...)   STR_1(x)"; \
+	echo "const char *kconfig ="; \
+	echo | cc -static -DXV6_HW=qemu -DXV6 -DCODEX=0 -fno-builtin -fno-strict-aliasing -fno-omit-frame-pointer -fms-extensions -mno-red-zone -fno-stack-protector -I/usr/lib/gcc/x86_64-linux-gnu/4.7/include -g -O3 -Wall -Werror -DHW_qemu --sysroot=o.qemu/sysroot -iquote include -iquoteo.qemu/include -iquote libutil/include -Istdinc -I../mtrace -include param.h -include libutil/include/compiler.h -std=c99 -Ikernel/acpica/source/include -mcmodel=kernel -DXV6_KERNEL -mno-sse -E -dN - -o - | \
+		awk '/^# /{P=0} P{print $2} /^# 1.*param.h/{P=1}' | \
+		awk '!/^$/{print "\"" $1 "=\" STR(" $1 ") \"\\n\""}'; \
+	echo ";" \
+	) > o.qemu/kernel/kconfig.cc.tmp
+cmp -s o.qemu/kernel/kconfig.cc.tmp o.qemu/kernel/kconfig.cc || mv o.qemu/kernel/kconfig.cc.tmp o.qemu/kernel/kconfig.cc
+  LD     o.qemu/kernel.elf
+mkdir -p o.qemu
+x86_64-jos-elf-ld -m elf_x86_64 -T kernel/kernel.ld -z max-page-size=4096 -e start \
+		-o o.qemu/kernel.elf o.qemu/kernel/boot.o o.qemu/kernel/acpi.o o.qemu/kernel/acpidbg.o o.qemu/kernel/acpiosl.o o.qemu/kernel/bio.o o.qemu/kernel/bootdata.o o.qemu/kernel/cga.o o.qemu/kernel/cmdline.o o.qemu/kernel/condvar.o o.qemu/kernel/console.o o.qemu/kernel/cpprt.o o.qemu/kernel/e1000.o o.qemu/kernel/exec.o o.qemu/kernel/file.o o.qemu/kernel/fmt.o o.qemu/kernel/fs.o o.qemu/kernel/futex.o o.qemu/kernel/idle.o o.qemu/kernel/ioapic.o o.qemu/kernel/hwvm.o o.qemu/kernel/hz.o o.qemu/kernel/kalloc.o o.qemu/kernel/kmalloc.o o.qemu/kernel/kbd.o o.qemu/kernel/main.o o.qemu/kernel/memide.o o.qemu/kernel/mp.o o.qemu/kernel/net.o o.qemu/kernel/pci.o o.qemu/kernel/picirq.o o.qemu/kernel/pipe.o o.qemu/kernel/proc.o o.qemu/kernel/gc.o o.qemu/kernel/radix.o o.qemu/kernel/refcache.o o.qemu/kernel/rnd.o o.qemu/kernel/sampler.o o.qemu/kernel/sched.o o.qemu/kernel/sperf.o o.qemu/kernel/spinlock.o o.qemu/kernel/swtch.o o.qemu/kernel/string.o o.qemu/kernel/syscall.o o.qemu/kernel/sysfile.o o.qemu/kernel/sysproc.o o.qemu/kernel/syssocket.o o.qemu/kernel/uart.o o.qemu/kernel/user.o o.qemu/kernel/vm.o o.qemu/kernel/trap.o o.qemu/kernel/uaccess.o o.qemu/kernel/trapasm.o o.qemu/kernel/wqkern.o o.qemu/kernel/wqlib.o o.qemu/kernel/script.o o.qemu/kernel/xapic.o o.qemu/kernel/x2apic.o o.qemu/kernel/zalloc.o o.qemu/kernel/incbin.o o.qemu/kernel/sysvectors.o o.qemu/kernel/pstream.o o.qemu/kernel/distref.o o.qemu/kernel/semaphore.o o.qemu/kernel/version.o o.qemu/kernel/buddy.o o.qemu/kernel/ipi.o o.qemu/kernel/kconfig.o o.qemu/kernel/dev.o o.qemu/kernel/codex.o o.qemu/kernel/benchcodex.o o.qemu/kernel/iommu.o o.qemu/kernel/rtc.o o.qemu/kernel/timemath.o o.qemu/kernel/mnode.o o.qemu/kernel/mfs.o o.qemu/kernel/mfsload.o /usr/lib/gcc/x86_64-linux-gnu/4.7/libgcc_eh.a /usr/lib/gcc/x86_64-linux-gnu/4.7/libsupc++.a -Lo.qemu -lacpica
+qemu-system-x86_64 -smp 8 -m 512 -serial mon:stdio -nographic -numa node -numa node -net user -net nic,model=e1000 -redir tcp:2323::23 -redir tcp:8080::80   -kernel o.qemu/kernel.elf
+[Jxv6 DEBUG
+inithz: PIT stuck, assuming 2GHz
+ACPI: RSDP 0xfd7d0 00014 (v0 BOCHS )
+ACPI: RSDT 0x1fffd370 00038 (v1 BOCHS  BXPCRSDT 00000001 BXPC 00000001)
+ACPI: FACP 0x1fffff80 00074 (v1 BOCHS  BXPCFACP 00000001 BXPC 00000001)
+ACPI: DSDT 0x1fffd9b0 02589 (v1   BXPC   BXDSDT 00000001 INTL 20100528)
+ACPI: FACS 0x1fffff40 00040
+ACPI: SSDT 0x1fffd660 00345 (v1 BOCHS  BXPCSSDT 00000001 BXPC 00000001)
+ACPI: APIC 0x1fffd540 000AA (v1 BOCHS  BXPCAPIC 00000001 BXPC 00000001)
+ACPI: HPET 0x1fffd500 00038 (v1 BOCHS  BXPCHPET 00000001 BXPC 00000001)
+ACPI: SRAT 0x1fffd3b0 00150 (v1 BOCHS  BXPCSRAT 00000001 BXPC 00000001)
+xapic: Using xAPIC LAPIC
+xapic: Initializing LAPIC (CPU 0)
+acpi: Initializing CPUs
+acpi: CPU 0 APICID 0
+acpi: CPU 1 APICID 1
+acpi: CPU 2 APICID 2
+acpi: CPU 3 APICID 3
+acpi: CPU 4 APICID 4
+acpi: CPU 5 APICID 5
+acpi: CPU 6 APICID 6
+acpi: CPU 7 APICID 7
+acpi: NUMA node 0: cpus 0 2 4 6 mem 0-0x9ffff 0x100000-0xfffffff
+acpi: NUMA node 1: cpus 1 3 5 7 mem 0x10000000-0x1fffffff
+acpi: Initializing IOAPICs
+ioapic: IOAPIC version 0x11 for IRQs 0..23 at 0xfec00000
+ioapic: Routing IRQ 4 (rising edge) to APICID 0
+e820: 0x0000000000000000-0x000000000009f3ff usable
+e820: 0x000000000009f400-0x000000000009ffff reserved
+e820: 0x00000000000f0000-0x00000000000fffff reserved
+e820: 0x0000000000100000-0x000000001fffcfff usable
+e820: 0x000000001fffd000-0x000000001fffffff reserved
+e820: 0x00000000feffc000-0x00000000feffffff reserved
+Scrubbed memory map:
+phys: 0x0000000000100000-0x000000001fffcfff
+kalloc: Clearing node 0
+kalloc: Clearing node 1
+ioapic: Routing IRQ 1 (rising edge) to APICID 0
+initsamp: Unsupported performance monitor version 0
+AcpiOsInstallInterruptHandler not implemented (9, 0xffffffffc11757f0, 0xffffff0003017508)
+acpi: Using ACPI for PCI root enumeration
+pci: Scanning bus 0
+e1000: Found 82540EM (desktop)
+e1000: Waiting for link to come up
+e1000: Link up at 1000 Mb/s full-duplex
+acpi: Resolving IRQ of 00:03.00 pin A
+acpi: PCI device 00:03.00 has ACPI handle \_SB_.PCI0.S3__
+acpi: PCI device 00:03.00 has ACPI handle \_SB_.PCI0.SL3_
+acpi: Found _PRT on \_SB_.PCI0
+acpi: Matching entry: PRT{Pin=A Address=0x3ffff SourceIndex=0 Source=\_SB_.LNKC}
+acpi: Enabling PCI link \_SB_.LNKC
+ioapic: Routing IRQ 11 (level high) to APICID 0
+xapic: Initializing LAPIC (CPU 1)
+xapic: Initializing LAPIC (CPU 2)
+xapic: Initializing LAPIC (CPU 3)
+xapic: Initializing LAPIC (CPU 4)
+xapic: Initializing LAPIC (CPU 5)
+xapic: Initializing LAPIC (CPU 6)
+xapic: Initializing LAPIC (CPU 7)
+init complete at Tue Feb 12 17:20:10 2013
+$ 
+exec  failed
+$ 
+exec  failed
+$ cpu0-gc_0: panic: global operator delete
+  ffffffffc010cb51
+  ffffffffc0130e8e
+  ffffffffc01310c5
+  ffffffffc012e907
+  ffffffffc01549ef

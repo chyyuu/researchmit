@@ -13,6 +13,6 @@
 
 # Executables
 *.exe
-*.out
+#*.out
 *.app
 *~
