@@ -31,8 +31,6 @@ used
 https://www.acpica.org/
 The ACPI Component Architecture Project
 
-The ACPI Component Architecture (ACPICA) project provides an operating system (OS)-independent reference implementation of the Advanced Configuration and Power Interface Specification (ACPI). It can be easily adapted to execute under any host OS. The ACPICA code is meant to be directly integrated into the host OS as a kernel-resident subsystem. Hosting the ACPICA subsystem requires no changes to the core ACPICA code. Instead, a small OS-specific interface layer is written specifically for each host OS in order to interface the ACPICA code to the native OS services.
-
 For don't modify Makefile
 add x86_64-jos-elf-* in /usr/local/bin
 
@@ -61,6 +59,12 @@ MMU abstraction 	813			hwvm.[cc,hh]
 Syscall interface 	648			syscall.cc syscalls.py
 
 
+
+mmu_shared_page_table in hwvm.*
+mmu_per_core_page_table in hwvm.*
+
+
+
 --------------
 amd64 vm addr related info
 http://www.njyangqs.com/hardware/amd64.htm
@@ -76,5 +80,28 @@ http://blog.donews.com/cunono/archive/2005/12/06/648663.aspx
 * http://blog.sina.com.cn/s/blog_6ce9c5b70100zxnc.html
 
 
+---------------
+C++0x atomic, etc. related info
 
+C++0x 内存模型和原子操作 （std:::atomic memory order等相关资料）
+http://hi.baidu.com/widebright/item/ee9d66d2be106dba32db904e
+
+C++11 Features in Visual C++ 11
+http://blogs.msdn.com/b/vcblog/archive/2011/09/12/10209291.aspx
+
+
+
+-------------------
+ACPI related info
+
+https://www.acpica.org/
+The ACPI Component Architecture Project
+
+The ACPI Component Architecture (ACPICA) project provides an operating system (OS)-independent reference implementation of the Advanced Configuration and Power Interface Specification (ACPI). It can be easily adapted to execute under any host OS. The ACPICA code is meant to be directly integrated into the host OS as a kernel-resident subsystem. Hosting the ACPICA subsystem requires no changes to the core ACPICA code. Instead, a small OS-specific interface layer is written specifically for each host OS in order to interface the ACPICA code to the native OS services.
+
+---------------------
+SMP related info
+
+PIC 、APIC(IOAPIC LAPIC)
+http://blog.csdn.net/hgf1011/article/details/5925661
 
