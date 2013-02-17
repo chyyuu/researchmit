@@ -1,5 +1,24 @@
 
+try to install fedora-ppc64 in qemu-system-ppc64
+-------------------------------------------------
+install newest qemu 1.14-rc2
+get iso or image
+./qemu-ppc/bin/qemu-system-ppc64 -M mac99 -m 1024 -nographic -net nic -net user -cdrom Fedora-18-ppc64-netinst.iso -boot d ppc.img
 
+./qemu-ppc/bin/qemu-system-ppc64  -m 1024 -nographic -net nic -net user -cdrom Fedora-18-ppc64-netinst.iso -boot d ppc.img -kernel ppcimg2/vmlinux -initrd ppcimg2/initrd.gz
+
+maybe ok
+
+https://bugzilla.redhat.com/show_bug.cgi?format=multiple&id=887978
+http://download3.fedora.redhat.com/pub/fedora-secondary/releases/18/Fedora/ppc64/iso/
+http://people.debian.org/~aurel32/qemu/powerpc/
+
+QEMU安装PowerPC Debian && mount qcow2 && QEMU参数说明
+http://beyondmeteor.blog.163.com/blog/static/365436302012013115314349/
+
+
+认识王鹏，6字班的学生，
+------------------------------------------------
 Xi Wang tell me a powerful grep replacement tool: ack-grep
 
 ​﻿read
