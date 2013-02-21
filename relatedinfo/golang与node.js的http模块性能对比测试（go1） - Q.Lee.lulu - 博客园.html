@@ -1,0 +1,1067 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0063)http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><script async="" type="text/javascript" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/gpt.js"></script>
+
+<title>golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园</title>
+<link type="text/css" rel="stylesheet" href="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/common.css">
+<link id="MainCss" type="text/css" rel="stylesheet" href="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/style.css">
+<link type="text/css" rel="stylesheet" href="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/common2.css">
+<link type="text/css" rel="stylesheet" href="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/shStyle.css">
+<link type="text/css" rel="stylesheet" href="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/customcss.aspx">
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/QLeelulu/rss">
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/QLeelulu/rsd.xml">
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/QLeelulu/wlwmanifest.xml">
+<script type="text/javascript" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/encoder.js"></script><script src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/woopra.js" type="text/javascript" async=""></script><script src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/jquery.js" type="text/javascript"></script>  
+<script type="text/javascript">
+var currentBlogApp = 'QLeelulu';
+</script>
+<script src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/common.js" type="text/javascript"></script> 
+<script src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/json2.js" type="text/javascript"></script>
+<script type="text/javascript" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/syntaxHighlighter.js"></script>
+<script type="text/javascript" async="" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/44573"></script><script async="" type="text/javascript" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/google_ads_gpt.js"></script><script type="text/javascript" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/osd.js"></script></head>
+<body>
+<a name="top"></a>
+<!--PageBeginHtml Block Begin-->
+<script language="javascript">
+	var setAdUrlId;
+	function setAdUrl(){
+		var ifr=$("iframe[id ^= alimama]");
+		var surl,adurl,scriptAd=$("#scriptAd");
+//$("#testDiv").append("surl:"+surl+"]]");
+//$("#scriptAd").attr("src",surl);
+		if(ifr){
+//if(ilock==0){
+//surl=ifr.attr("src");
+//scriptAd.attr("src",surl);
+//ilock++;
+//}
+
+
+//adurl=$("iframe[id ^= alimama]").find("#main").eq(0).find(".adudv").eq(0).find("a").eq(0).attr("href");
+//$("#testDiv").append("adurl: "+adurl+">>>");
+		}
+		if(!adurl){
+			//clearInterval(setAdUrlId);
+			//setAdUrlId = setInterval(setAdUrl,5000);
+			//return false;
+		}
+		//clearInterval(setAdUrlId);
+		//$("#mycnblogsad").attr("src",url);
+	}
+
+$(document).ready(function(){
+
+$("body").append("");
+setAdUrl();
+
+$("[myTip]").hover(function(){
+	$('<div id="luluTip"><div class="triangle" /></div>').insertAfter( $(this) );
+	$("#luluTip").prepend($(this).attr("myTip"));
+	$(this).mousemove(function(e){
+		e=e || window.event;
+		var x=e.pageX-36;
+		if(x-2<0)
+			x=2;
+		if(x+180>document.body.clientWidth)
+			x=document.body.clientWidth-200;
+		$("#luluTip").css({"left":x,"top":e.pageY+20,"display":"block"});
+	});
+	},function(){
+		$(this).unbind("mousemove");
+		$("#luluTip").remove();
+		$(this).unbind("hover");
+	});
+
+	$("#show-alert").click(function() {
+	$("<div class='quick-alert'>警告! 欢迎来到luluStudio!</div>")
+	.insertAfter( $(this) )
+	.fadeIn("slow")
+	.animate({opacity: 1.0}, 3000)
+	.fadeOut("slow", function() {
+	  $(this).remove();
+	});
+  });
+
+});
+</script>
+<!--PageBeginHtml Block End-->
+
+<!--done-->
+<div id="header">
+	
+<!--done-->
+<div class="header">
+	<div class="headerText">
+		<a id="Header1_HeaderTitle" class="headermaintitle" href="http://www.cnblogs.com/QLeelulu/">lulu Studio</a><br>
+		<a mytip="欢迎进去我的Flash站点浏览!" href="http://qleelulu.atx41.idc800.net/flash/" style="color:#FFFFFF" target="blank">我的Flash站</a>
+	</div>
+</div>
+
+</div>
+
+<div id="mytopmenu">
+	
+		<div id="mylinks">
+<!--done-->
+<a id="MyLinks1_HomeLink" class="menu" href="http://www.cnblogs.com/">博客园</a> &nbsp;
+<a id="MyLinks1_MyHomeLink" class="menu" href="http://www.cnblogs.com/QLeelulu/">首页</a> &nbsp;
+<a href="http://q.cnblogs.com/" class="menu">博问</a> &nbsp;
+<a href="http://home.cnblogs.com/ing/" class="menu">闪存</a> &nbsp;
+<a id="MyLinks1_NewPostLink" class="menu" rel="nofollow" href="http://www.cnblogs.com/QLeelulu/admin/EditPosts.aspx?opt=1">新随笔</a> &nbsp;
+<a id="MyLinks1_ContactLink" class="menu" rel="nofollow" href="http://space.cnblogs.com/msg/send/Q.Lee.lulu">联系</a> &nbsp;
+<a id="MyLinks1_Syndication" class="menu" href="http://www.cnblogs.com/QLeelulu/rss">订阅</a><a id="MyLinks1_XMLLink" href="http://www.cnblogs.com/QLeelulu/rss"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml.gif" alt="订阅"></a>&nbsp;
+<a id="MyLinks1_Admin" class="menu" rel="nofollow" href="http://www.cnblogs.com/QLeelulu/admin/EditPosts.aspx">管理</a>
+</div>
+		<div id="mystats">
+<!--done-->
+随笔-123&nbsp;
+评论-1606&nbsp;
+文章-1&nbsp;
+trackbacks-99
+</div>
+	
+</div>
+<div id="centercontent">
+	
+	
+<div class="post">
+	<h1 class="postTitle"><a id="cb_post_title_url" class="postTitle2" href="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园.html">golang与node.js的http模块性能对比测试（go1）</a></h1>
+	<div id="cnblogs_post_body"><p>去年的时候，曾经简单对比了一下golang和nodejs的http模块的性能，见：&nbsp;<a id="cb_post_title_url" class="postTitle2" style="margin: 0px; padding: 0px; text-decoration: none; color: #1a8bc8;" href="http://www.cnblogs.com/QLeelulu/archive/2011/09/07/2170204.html">golang与node.js的http对比测试</a></p>
+<p>那时golang还没发布go1，http模块比nodejs差得很远。</p>
+<p>go1出来已经有一段时间了，我知道go的http模块性能已经有比较大的提升，但是最近依然见到有人提起去年写的那篇文章，为避免产生对golang的误解，对于go1的最新测试结果如下。</p>
+<p><br>测试是在Ubuntu 12.04 64位系统下进行的：</p>
+<div class="cnblogs_code">
+<pre>qleelulu@nb:~$ <span style="color: #0000ff;">uname</span> -<span style="color: #000000;">a
+Linux nb </span><span style="color: #800080;">3.2</span>.<span style="color: #800080;">0</span>-<span style="color: #800080;">25</span>-generic #<span style="color: #800080;">40</span>-Ubuntu SMP Wed May <span style="color: #800080;">23</span> <span style="color: #800080;">20</span>:<span style="color: #800080;">30</span>:<span style="color: #800080;">51</span> UTC <span style="color: #800080;">2012</span> x86_64 x86_64 x86_64 GNU/<span style="color: #000000;">Linux
+
+qleelulu@nb:</span>~$ <span style="color: #0000ff;">sudo</span> dmidecode | <span style="color: #0000ff;">grep</span><span style="color: #000000;"> CPU
+Socket Designation: CPU
+Version: Intel(R) Core(TM) i5 CPU M </span><span style="color: #800080;">480</span> @ <span style="color: #800080;">2</span>.67GHz (注：双核4线程)</pre>
+</div>
+<p>&nbsp;</p>
+<p>go的版本：</p>
+<div class="cnblogs_code">
+<pre>qleelulu@nb:~<span style="color: #000000;">$ go version
+go version go1</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>nodejs的版本：</p>
+<div class="cnblogs_code">
+<pre>qleelulu@nb:~$ node -<span style="color: #000000;">v
+v0.</span><span style="color: #800080;">8.6</span></pre>
+</div>
+<p>&nbsp;</p>
+<h2>单CPU测试</h2>
+<p>nodejs是单进程，只使用一个CPU，所以这里golang在代码中需要限制为只使用一个CPU。</p>
+<h3>go的代码： （注：go代码都是使用 go build xxx.go 编译）</h3>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre><span style="color: #000000;">package main
+
+import (
+    </span>"fmt"
+    "log"
+    "net/http"
+    "runtime"<span style="color: #000000;">
+)
+
+func main() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 限制为1个CPU</span>
+    runtime.GOMAXPROCS(1<span style="color: #000000;">)
+
+    http</span>.HandleFunc("/", func(w http.ResponseWriter, r  *http.<span style="color: #000000;">Request) {
+        fmt</span>.Fprint(w, "Hello, world."<span style="color: #000000;">)
+    })
+
+    </span><span style="color: #008080;">log</span>.Fatal(http.ListenAndServe(":8080",<span style="color: #000000;"> nil))
+}</span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>golang请求结果：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>qleelulu@nb:~/sources/test$ curl -i http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+HTTP/<span style="color: #800080;">1.1</span> <span style="color: #800080;">200</span><span style="color: #000000;"> OK
+Date: Sun, </span><span style="color: #800080;">12</span> Aug <span style="color: #800080;">2012</span> <span style="color: #800080;">07</span>:<span style="color: #800080;">21</span>:<span style="color: #800080;">00</span><span style="color: #000000;"> GMT
+Transfer</span>-<span style="color: #000000;">Encoding: chunked
+Content</span>-Type: text/plain; charset=utf-<span style="color: #800080;">8</span><span style="color: #000000;">
+
+Hello, world.</span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>golang单cpu的ab测试结果：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>qleelulu@nb:~$ ab -c <span style="color: #800080;">100</span> -n <span style="color: #800080;">5000</span> http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+This is ApacheBench, Version <span style="color: #800080;">2.3</span> &lt;$Revision: <span style="color: #800080;">655654</span> $&gt;<span style="color: #000000;">
+
+Server Software: 
+
+Server Hostname: </span><span style="color: #800080;">127.0</span>.<span style="color: #800080;">0.1</span><span style="color: #000000;">
+Server Port: </span><span style="color: #800080;">8080</span><span style="color: #000000;">
+
+Document Path: </span>/<span style="color: #000000;">
+Document Length: </span><span style="color: #800080;">13</span><span style="color: #000000;"> bytes
+
+Concurrency Level: </span><span style="color: #800080;">100</span><span style="color: #000000;">
+Time taken </span><span style="color: #0000ff;">for</span> tests: <span style="color: #800080;">0.593</span><span style="color: #000000;"> seconds
+Complete requests: </span><span style="color: #800080;">5000</span><span style="color: #000000;">
+Failed requests: </span><span style="color: #800080;">0</span><span style="color: #000000;">
+Write errors: </span><span style="color: #800080;">0</span><span style="color: #000000;">
+Total transferred: </span><span style="color: #800080;">550000</span><span style="color: #000000;"> bytes
+HTML transferred: </span><span style="color: #800080;">65000</span><span style="color: #000000;"> bytes
+Requests per second: </span><span style="color: #ff0000;"><strong>8427.78</strong></span> [#/<span style="color: #000000;">sec] (mean)
+Time per request: </span><span style="color: #800080;">11.866</span><span style="color: #000000;"> [ms] (mean)
+Time per request: </span><span style="color: #800080;">0.119</span><span style="color: #000000;"> [ms] (mean, across all concurrent requests)
+Transfer rate: </span><span style="color: #800080;">905.33</span> [Kbytes/<span style="color: #000000;">sec] received
+...</span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>共测试五次，五次结果分别如下：</p>
+<p style="margin-left: 30px;">Requests per second: &nbsp; &nbsp;8427.78 [#/sec] (mean)<br>Requests per second: &nbsp; &nbsp;7980.73 [#/sec] (mean)<br>Requests per second: &nbsp; &nbsp;7509.63 [#/sec] (mean)<br>Requests per second: &nbsp; &nbsp;8242.47 [#/sec] (mean)<br>Requests per second: &nbsp; &nbsp;8898.19 [#/sec] (mean)</p>
+<p>golang单cpu的webbench测试结果：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>qleelulu@nb:~$ webbench -t <span style="color: #800080;">30</span> -c <span style="color: #800080;">200</span> http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+Webbench - Simple Web Benchmark <span style="color: #800080;">1.5</span><span style="color: #000000;">
+Copyright (c) Radim Kolar </span><span style="color: #800080;">1997</span>-<span style="color: #800080;">2004</span><span style="color: #000000;">, GPL Open Source Software.
+
+Benchmarking: GET http:</span><span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+<span style="color: #800080;">200</span> clients, running <span style="color: #800080;">30</span><span style="color: #000000;"> sec.
+
+Speed</span>=<span style="color: #800080;">463124</span> pages/min, <span style="color: #800080;">849060</span> bytes/<span style="color: #000000;">sec.
+Requests: </span><span style="color: #800080;">231562</span> susceed, <span style="color: #800080;">0</span> failed.</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>共测试五次，结果如下：</p>
+<p style="margin-left: 30px;">Speed=463124 pages/min, 849060 bytes/sec.<br>Speed=455322 pages/min, 834757 bytes/sec.<br>Speed=461536 pages/min, 846149 bytes/sec.<br>Speed=454798 pages/min, 833803 bytes/sec.<br>Speed=468592 pages/min, 859085 bytes/sec.</p>
+<p>golang单CPU webbench测试时，CPU使用率如下：</p>
+<p><img title="go-s-webb.png" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/201208121724362601.png" alt="golang单cpu webbench测试时的CPU使用率" width="600" height="172" border="0" data-pinit="registered"></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>nodejs 单CPU测试代码</strong></span>：</p>
+<div class="cnblogs_code">
+<pre><span style="color: #0000ff;">var</span> http = require('http'<span style="color: #000000;">);
+http.createServer(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (req, res) {
+    res.end(</span>'Hello, World.'<span style="color: #000000;">);
+}).listen(</span>8080, '127.0.0.1'<span style="color: #000000;">);
+console.log(</span>'Server running at http://127.0.0.1:8080/');</pre>
+</div>
+<p>&nbsp;</p>
+<p>nodejs请求结果：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>qleelulu@nb:~/$ curl -i http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+HTTP/<span style="color: #800080;">1.1</span> <span style="color: #800080;">200</span><span style="color: #000000;"> OK
+Date: Sun, </span><span style="color: #800080;">12</span> Aug <span style="color: #800080;">2012</span> <span style="color: #800080;">07</span>:<span style="color: #800080;">45</span>:<span style="color: #800080;">23</span><span style="color: #000000;"> GMT
+Connection: keep</span>-<span style="color: #000000;">alive
+Transfer</span>-<span style="color: #000000;">Encoding: chunked
+
+Hello, World.</span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>为方便对比golang的返回结果，再贴一次golang的返回结果：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre><span style="color: #000000;">golang请求结果：
+qleelulu@nb:</span>~/sources/test$ curl -i http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+HTTP/<span style="color: #800080;">1.1</span> <span style="color: #800080;">200</span><span style="color: #000000;"> OK
+Date: Sun, </span><span style="color: #800080;">12</span> Aug <span style="color: #800080;">2012</span> <span style="color: #800080;">07</span>:<span style="color: #800080;">21</span>:<span style="color: #800080;">00</span><span style="color: #000000;"> GMT
+Transfer</span>-<span style="color: #000000;">Encoding: chunked
+Content</span>-Type: text/plain; charset=utf-<span style="color: #800080;">8</span><span style="color: #000000;">
+
+Hello, world.</span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>nodejs的单cpu ab测试结果：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>qleelulu@nb:~$ ab -c <span style="color: #800080;">100</span> -n <span style="color: #800080;">5000</span> http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+This is ApacheBench, Version <span style="color: #800080;">2.3</span> &lt;$Revision: <span style="color: #800080;">655654</span> $&gt;<span style="color: #000000;">
+
+Server Software: 
+Server Hostname: </span><span style="color: #800080;">127.0</span>.<span style="color: #800080;">0.1</span><span style="color: #000000;">
+Server Port: </span><span style="color: #800080;">8080</span><span style="color: #000000;">
+
+Document Path: </span>/<span style="color: #000000;">
+Document Length: </span><span style="color: #800080;">13</span><span style="color: #000000;"> bytes
+
+Concurrency Level: </span><span style="color: #800080;">100</span><span style="color: #000000;">
+Time taken </span><span style="color: #0000ff;">for</span> tests: <span style="color: #800080;">0.696</span><span style="color: #000000;"> seconds
+Complete requests: </span><span style="color: #800080;">5000</span><span style="color: #000000;">
+Failed requests: </span><span style="color: #800080;">0</span><span style="color: #000000;">
+Write errors: </span><span style="color: #800080;">0</span><span style="color: #000000;">
+Total transferred: </span><span style="color: #800080;">440000</span><span style="color: #000000;"> bytes
+HTML transferred: </span><span style="color: #800080;">65000</span><span style="color: #000000;"> bytes
+Requests per second: </span><span style="color: #ff0000;"><strong>7185.91</strong></span> [#/<span style="color: #000000;">sec] (mean)
+Time per request: </span><span style="color: #800080;">13.916</span><span style="color: #000000;"> [ms] (mean)
+Time per request: </span><span style="color: #800080;">0.139</span><span style="color: #000000;"> [ms] (mean, across all concurrent requests)
+Transfer rate: </span><span style="color: #800080;">617.54</span> [Kbytes/sec] received</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>共测试5次，结果如下</p>
+<p style="margin-left: 30px;">Requests per second: &nbsp; &nbsp;7185.91 [#/sec] (mean)<br>Requests per second: &nbsp; &nbsp;7484.97 [#/sec] (mean)<br>Requests per second: &nbsp; &nbsp;7388.25 [#/sec] (mean)<br>Requests per second: &nbsp; &nbsp;7411.80 [#/sec] (mean)<br>Requests per second: &nbsp; &nbsp;7571.10 [#/sec] (mean)&nbsp;</p>
+<p>nodejs单cpu的webbench测试结果：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>qleelulu@nb:~$ webbench -t <span style="color: #800080;">30</span> -c <span style="color: #800080;">200</span> http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+Webbench - Simple Web Benchmark <span style="color: #800080;">1.5</span><span style="color: #000000;">
+Copyright (c) Radim Kolar </span><span style="color: #800080;">1997</span>-<span style="color: #800080;">2004</span><span style="color: #000000;">, GPL Open Source Software.
+
+Benchmarking: GET http:</span><span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+<span style="color: #800080;">200</span> clients, running <span style="color: #800080;">30</span><span style="color: #000000;"> sec.
+
+Speed</span>=<span style="color: #800080;">432582</span> pages/min, <span style="color: #800080;">634453</span> bytes/<span style="color: #000000;">sec.
+Requests: </span><span style="color: #800080;">216291</span> susceed, <span style="color: #800080;">0</span> failed.</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>共测试5次，结果如下</p>
+<p style="margin-left: 30px;">Speed=432582 pages/min, 634453 bytes/sec.<br>Speed=434868 pages/min, 637803 bytes/sec.<br>Speed=435608 pages/min, 638891 bytes/sec.<br>Speed=434466 pages/min, 637216 bytes/sec.<br>Speed=431816 pages/min, 633330 bytes/sec.&nbsp;</p>
+<p>nodejs单CPU webbench测试时，CPU使用率如下：</p>
+<p><img title="nodes-webb.png" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/201208121724395717.png" alt="nodejs单CPU webbench测试时，CPU使用率" width="600" height="174" border="0" data-pinit="registered"></p>
+<p>&nbsp;</p>
+<p>单CPU测试go和nodes的ab测试对比结果：</p>
+<p><img title="go1-node-s-webb.png" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/201208121724403044.png" alt="单CPU测试go和nodes的ab测试对比结果" width="419" height="246" border="0" data-pinit="registered"></p>
+<p>从单CPU的测试结果来看，golang和nodejs的性能差不多，golang要稍微比nodejs的性能好一点。<br>但是从CPU的使用率来看，特别是在webbench测试的时候，测golang的时候，我笔记本上4个CPU的使用率都在50%左右，而测nodejs的时候，则明显是有一个CPU的使用率是在100%，其他的在30%左右。&nbsp;<br>对于nodejs， 一个CPU占用去到100%是很正常的，V8引擎也从来都是非常吃CPU的。对于golang为什么限制为仅使用1个CPU，而测试时4个CPU的使用率都去到50%，可能和go对于goroutine的调度方式有关系。</p>
+<p>&nbsp;</p>
+<h2>多CPU测试</h2>
+<p><span style="font-size: 16px;"><strong>go测试代码</strong></span>：<br>因为是在同一台机器上测试的，所以限制使用的CPU数为机器的CPU数减一。</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre><span style="color: #000000;">package main
+
+import (
+    </span>"fmt"
+    "log"
+    "net/http"
+    "runtime"<span style="color: #000000;">
+)
+
+func main() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 限制为CPU的数量减一</span>
+    runtime.GOMAXPROCS( runtime.NumCPU() - 1<span style="color: #000000;"> )
+
+    http.HandleFunc(</span>"/", func(w http.ResponseWriter, r *<span style="color: #000000;">http.Request) {
+        fmt.Fprint(w, </span>"Hello, world."<span style="color: #000000;">)
+    })
+
+    log.Fatal(http.ListenAndServe(</span>":8080"<span style="color: #000000;">, nil))
+}</span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>golang的多CPU ab测试结果，共测试5次，结果如下：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>$ ab -c <span style="color: #800080;">100</span> -n <span style="color: #800080;">5000</span> http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+<span style="color: #000000;">
+Requests per second:    </span><span style="color: #800080;">14391.80</span> [#/<span style="color: #000000;">sec] (mean)
+Requests per second:    </span><span style="color: #800080;">14307.09</span> [#/<span style="color: #000000;">sec] (mean)
+Requests per second:    </span><span style="color: #800080;">14285.31</span> [#/<span style="color: #000000;">sec] (mean)
+Requests per second:    </span><span style="color: #800080;">15182.34</span> [#/<span style="color: #000000;">sec] (mean)
+Requests per second:    </span><span style="color: #800080;">14020.53</span> [#/sec] (mean)</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>golang的多CPU webbench测试结果，共测试5次，结果如下：&nbsp;</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>$ webbench -t <span style="color: #800080;">30</span> -c <span style="color: #800080;">200</span> http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+<span style="color: #000000;">
+Speed</span>=<span style="color: #800080;">750418</span> pages/min, <span style="color: #800080;">1375982</span> bytes/<span style="color: #000000;">sec.
+Speed</span>=<span style="color: #800080;">750492</span> pages/min, <span style="color: #800080;">1375909</span> bytes/<span style="color: #000000;">sec.
+Speed</span>=<span style="color: #800080;">749128</span> pages/min, <span style="color: #800080;">1373408</span> bytes/<span style="color: #000000;">sec.
+Speed</span>=<span style="color: #800080;">749720</span> pages/min, <span style="color: #800080;">1374486</span> bytes/<span style="color: #000000;">sec.
+Speed</span>=<span style="color: #800080;">753080</span> pages/min, <span style="color: #800080;">1380698</span> bytes/sec. </pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>golang多CPU webbench测试时，CPU使用率如下：</p>
+<p><img title="gom-webb.png" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/201208121724435321.png" alt="golang多CPU webbench测试时，CPU使用率" width="600" height="174" border="0" data-pinit="registered"></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>nodejs测试代码</strong></span><br>使用cluster，使用CPU数量减一个CPU</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre><span style="color: #0000ff;">var</span> cluster = require('cluster'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> http = require('http'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> numCPUs = require('os'<span style="color: #000000;">).cpus().length;
+
+</span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (cluster.isMaster) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Fork workers. fock num of CPUS - 1 works</span>
+    <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 1; i &lt; numCPUs; i++<span style="color: #000000;">) {
+        cluster.fork();
+    }
+
+    cluster.on(</span>'exit', <span style="color: #0000ff;">function</span><span style="color: #000000;">(worker, code, signal) {
+        console.log(</span>'worker ' + worker.process.pid + ' died'<span style="color: #000000;">);
+    }); 
+    cluster.on(</span>'fork', <span style="color: #0000ff;">function</span><span style="color: #000000;">(worker, code, signal) {
+        console.log(</span>'worker ' + worker.process.pid + ' is online'<span style="color: #000000;">);
+    }); 
+} </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Workers can share any TCP connection</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> In this case its a HTTP server</span>
+    http.createServer(<span style="color: #0000ff;">function</span><span style="color: #000000;">(req, res) {
+        res.writeHead(</span>200<span style="color: #000000;">);
+        res.end(</span>"hello world."<span style="color: #000000;">);
+    }).listen(</span>8080<span style="color: #000000;">);
+}</span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>nodejs的多CPU ab测试结果，共测试5次，结果如下：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>$ ab -c <span style="color: #800080;">100</span> -n <span style="color: #800080;">5000</span> http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+<span style="color: #000000;">
+Requests per second:    </span><span style="color: #800080;">12694.96</span> [#/<span style="color: #000000;">sec] (mean)
+Requests per second:    </span><span style="color: #800080;">12606.68</span> [#/<span style="color: #000000;">sec] (mean)
+Requests per second:    </span><span style="color: #800080;">12712.68</span> [#/<span style="color: #000000;">sec] (mean)
+Requests per second:    </span><span style="color: #800080;">12851.16</span> [#/<span style="color: #000000;">sec] (mean)
+Requests per second:    </span><span style="color: #800080;">13005.08</span> [#/sec] (mean) </pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>nodejs的多CPU webbench测试结果，共测试5次，结果如下：&nbsp;</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>$ webbench -t <span style="color: #800080;">30</span> -c <span style="color: #800080;">200</span> http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/</span>
+<span style="color: #000000;">
+Speed</span>=<span style="color: #800080;">791932</span> pages/min, <span style="color: #800080;">1148301</span> bytes/<span style="color: #000000;">sec.
+Speed</span>=<span style="color: #800080;">786516</span> pages/min, <span style="color: #800080;">1140448</span> bytes/<span style="color: #000000;">sec. 
+Speed</span>=<span style="color: #800080;">797336</span> pages/min, <span style="color: #800080;">1156140</span> bytes/<span style="color: #000000;">sec.
+Speed</span>=<span style="color: #800080;">783182</span> pages/min, <span style="color: #800080;">1135619</span> bytes/<span style="color: #000000;">sec.
+Speed</span>=<span style="color: #800080;">785206</span> pages/min, <span style="color: #800080;">1138551</span> bytes/sec. </pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p>nodejs多CPU webbench测试时，CPU使用率如下：</p>
+<p><img title="nodem-webb.png" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/201208121724458121.png" alt="nodejs多CPU webbench测试时，CPU使用率" width="600" height="173" border="0" data-pinit="registered"></p>
+<p>&nbsp;</p>
+<p>多CPU测试结果来看，总体上来说go和nodejs的性能也还是差不多。<br>但从ab测试的结果来看，go的QPS要比nodejs高一点，<br>而从webbench测试结果来看，nodejs的QPS要比go高，但是go的bytes/sec又要比nodes高，可能是go的http返回头比nodes要稍微大一点的原因。</p>
+<p>多CPU测试时的CPU使用情况和单cpu测试时的情况差不多，<br>golang对4个cpu的占用率都在70%左右，<br>而node则是对3个CPU的占用在90%以上，还有一个CPU的占用率则要稍微低点。&nbsp;</p>
+<p>&nbsp;</p>
+<p>从整体来看，golang和nodejs的http模块性能不相上下。<br>go1的性能还是比较喜人的，加上go语音的简洁，是个不错的选择（目前可能go的一些第三方模块都不是很成熟）。</p>
+<p>&nbsp;</p></div><div id="MySignature"><div id="MySignature"><div style="border: 1px solid #A1C665; margin: 0pt auto; padding: 10px; background: #C5E88E;">
+<div style="float: left;margin-right:10px;">
+<img height="90" width="90" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/2009080113232717.jpg">
+</div>
+<div style="color: rgb(0, 0, 0); line-height: 200%;">
+作者：QLeelulu 
+<a target="_blank" href="http://www.twitter.com/QLeelulu" style=""><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/follow_me-a.png" alt="Follow QLeelulu on Twitter"></a>
+<br>
+出处：<a href="http://qleelulu.cnblogs.com/">http://QLeelulu.cnblogs.com/</a> <br>
+本文版权归作者和博客园共有，欢迎转载，但未经作者同意必须保留此段声明，且在文章页面明显位置给出原文连接，否则保留追究法律责任的权利<br>
+</div>
+<div style="clear:both;"></div>
+</div></div>
+
+
+<ins style="display:inline-table;border:none;height:90px;margin:0;padding:0;position:relative;visibility:visible;width:728px"><ins id="aswift_0_anchor" style="display:block;border:none;height:90px;margin:0;padding:0;position:relative;visibility:visible;width:728px"><iframe width="728" height="90" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){w.location.replace(h)}}" id="aswift_0" name="aswift_0" style="left:0;position:absolute;top:0;"></iframe></ins></ins>
+</div>
+<script type="text/javascript">
+var isLogined = false;
+var cb_blogId = 30181;
+var cb_entryId = 2635261;
+var cb_blogApp = currentBlogApp;
+var cb_blogUserGuid = "ee813d0b-63cf-dd11-9e4d-001cf0cd104b";
+var cb_entryCreatedDate = '2012/8/12 17:25:00';
+var enableGoogleAd = true;
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+</script>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="blog_post_info"><div id="BlogPostCategory"></div>
+<div id="EntryTag">标签: <a href="http://www.cnblogs.com/QLeelulu/tag/node.js/">node.js</a>, <a href="http://www.cnblogs.com/QLeelulu/tag/node/">node</a>, <a href="http://www.cnblogs.com/QLeelulu/tag/nodejs/">nodejs</a>, <a href="http://www.cnblogs.com/QLeelulu/tag/golang/">golang</a>, <a href="http://www.cnblogs.com/QLeelulu/tag/go1/">go1</a></div>
+<div id="green_channel">
+绿色通道：
+<a href="javascript:void(0);" id="green_channel_digg" onclick="DiggIt(cb_entryId,cb_blogId,1);green_channel_success(this,&#39;谢谢推荐！&#39;);">好文要顶</a>
+<a id="green_channel_follow" onclick="c_follow();" href="javascript:void(0);">关注我</a>
+<a id="green_channel_favorite" onclick="AddToWz(cb_entryId);return false;" href="javascript:void(0);">收藏该文</a><a id="green_channel_contact" href="http://space.cnblogs.com/msg/send/Q.Lee.lulu" target="_blank">与我联系</a>
+<a id="green_channel_weibo" href="javascript:void(0);" title="分享至新浪微博" onclick="ShareToTsina()"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/icon_weibo_24.png" alt=""></a>
+</div>
+<div id="digg_block">
+<div id="author_profile">
+<div id="author_profile_info" class="author_profile_info">
+<a href="http://home.cnblogs.com/u/QLeelulu/" target="_blank"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/u26621.jpg" class="author_avatar" alt=""></a>
+<div id="author_profile_detail" class="author_profile_info">
+<a href="http://home.cnblogs.com/u/QLeelulu/">Q.Lee.lulu</a><br>
+<a href="http://home.cnblogs.com/u/QLeelulu/followees">关注 - 7</a><br>
+<a href="http://home.cnblogs.com/u/QLeelulu/followers">粉丝 - 511</a>
+</div>
+</div>
+<div class="clear"></div>
+<div id="author_profile_honor">荣誉：<a href="http://www.cnblogs.com/expert/" target="_blank">推荐博客</a></div>
+<div id="author_profile_follow">
+<a href="javascript:void(0);" onclick="c_follow();return false;">+加关注</a>
+</div>
+</div>
+<div id="div_digg">										
+	<div class="diggit" onclick="votePost(cb_entryId,&#39;Digg&#39;)"> 
+		<span class="diggnum" id="digg_count">2</span>
+	</div>
+	<div class="buryit" onclick="votePost(cb_entryId,&#39;Bury&#39;)"> 
+		<span class="burynum" id="bury_count">0</span>
+	</div>
+	<div class="clear"></div>	
+	<div class="diggword" id="digg_tips">
+    (请您对文章做出评价)
+    </div>	
+</div>
+</div></div>
+<div class="clear"></div>
+<div id="post_next_prev"><a href="http://www.cnblogs.com/QLeelulu/archive/2012/02/08/2343260.html" class="p_n_p_prefix">« </a> 博主上一篇：<a href="http://www.cnblogs.com/QLeelulu/archive/2012/02/08/2343260.html" title="发布于2012-02-08 22:10">用OpenCv来做人脸识别</a><br><a href="http://www.cnblogs.com/QLeelulu/archive/2012/09/26/2704808.html" class="p_n_p_prefix">» </a> 博主下一篇：<a href="http://www.cnblogs.com/QLeelulu/archive/2012/09/26/2704808.html" title="发布于2012-09-26 22:31">与IT&amp;码农有关的电影和记录片</a><br><a href="http://www.cnblogs.com/buptzym/archive/2012/08/12/2635251.html" class="p_n_p_prefix">« </a> 首页上一篇：<a href="http://www.cnblogs.com/buptzym/archive/2012/08/12/2635251.html">慎用单例模式！</a><br><a href="http://www.cnblogs.com/ntcj/archive/2012/08/12/2635264.html" class="p_n_p_prefix">» </a> 首页下一篇：<a href="http://www.cnblogs.com/ntcj/archive/2012/08/12/2635264.html">CJCMS系列---说说项目中的插件思想（2）</a><br></div>
+</div>
+<script type="text/javascript">
+    //SyntaxHighlighter.config.strings.expandSource = '<span><img src="http://static.cnblogs.com/images/expand-code.gif" alt="" class="expand-code-icon"/>View Code</span>';
+    $(function () {             
+        fixPostBodyFormat();
+        loadAdUnderPost();
+        loadBlogSignature();
+        LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+        GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate);        
+        GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);        
+    });
+</script>
+	<div class="postDesc">posted on <span id="post-date">2012-08-12 17:25</span> <a href="http://www.cnblogs.com/QLeelulu/">Q.Lee.lulu</a> 阅读(3187) 评论(<span id="post-comment-count">4</span>)  <a href="http://www.cnblogs.com/QLeelulu/admin/EditPosts.aspx?postid=2635261" rel="nofollow">编辑</a> <a href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="AddToWz(2635261);return false;">收藏</a></div>
+</div>
+<img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/2635261.html" width="1" height="1" alt="">
+
+<div id="blog-comments-placeholder"><div id="comments_pager_top"></div>
+<!--done-->
+<br>
+<b>评论:</b>
+<div class="feedbackNoItems"></div>
+	
+
+		<div class="feedbackItem">
+			<div class="feedbackListSubtitle">
+			<a href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#2447158" class="layer">#1楼</a><a name="2447158" id="comment_anchor_2447158"></a>
+				 <span class="comment_date">2012-08-13 00:06</span> | <a id="a_comment_author_2447158" href="http://www.cnblogs.com/fengmk2/" target="_blank">MK2</a> <a href="http://space.cnblogs.com/msg/send/MK2" title="发送站内短消息" class="sendMsg2This">&nbsp;</a><br>
+				<div align="left"><div id="comment_body_2447158" class="blog_comment_body"><img id="comment_2447158_avatar" class="comment-avatar" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/u18546.jpg" alt="" style="display:none;">加一个请求后端高速源的测试看看？hello world的话，luajit简直无敌。。。</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2447158,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2447158,&#39;Bury&#39;,this)">反对(0)</a></div>&nbsp;&nbsp;<span class="comment_actions"></span></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListSubtitle">
+			<a href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#2447165" class="layer">#2楼</a><a name="2447165" id="comment_anchor_2447165"></a>[<span class="louzhu">楼主</span>]
+				 <span class="comment_date">2012-08-13 00:36</span> | <a id="a_comment_author_2447165" href="http://www.cnblogs.com/QLeelulu/" target="_blank">Q.Lee.lulu</a> <a href="http://space.cnblogs.com/msg/send/Q.Lee.lulu" title="发送站内短消息" class="sendMsg2This">&nbsp;</a><br>
+				<div align="left"><div id="comment_body_2447165" class="blog_comment_body"><img id="comment_2447165_avatar" class="comment-avatar" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/u26621.jpg" alt="" style="display:none;"><a href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#2447158" title="查看所回复的评论">@</a>MK2<br>这不好测，例如你挂个redis吧，性能直接受redis模块实现的优劣影响</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2447165,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2447165,&#39;Bury&#39;,this)">反对(0)</a></div>&nbsp;&nbsp;<span class="comment_actions"></span></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListSubtitle">
+			<a href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#2447171" class="layer">#3楼</a><a name="2447171" id="comment_anchor_2447171"></a>
+				 <span class="comment_date">2012-08-13 02:04</span> | <a id="a_comment_author_2447171" href="http://www.cnblogs.com/fengmk2/" target="_blank">MK2</a> <a href="http://space.cnblogs.com/msg/send/MK2" title="发送站内短消息" class="sendMsg2This">&nbsp;</a><br>
+				<div align="left"><div id="comment_body_2447171" class="blog_comment_body"><img id="comment_2447171_avatar" class="comment-avatar" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/u18546.jpg" alt="" style="display:none;"><a href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#2447165" title="查看所回复的评论">@</a>Q.Lee.lulu<br>redis的性能远大于http hello world吧？</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2447171,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2447171,&#39;Bury&#39;,this)">反对(0)</a></div>&nbsp;&nbsp;<span class="comment_actions"></span></div>
+			</div>
+			
+			
+		</div>
+	
+		<div class="feedbackItem">
+			<div class="feedbackListSubtitle">
+			<a href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#2570315" class="layer">#4楼</a><a name="2570315" id="comment_anchor_2570315"></a><span id="comment-maxId" style="display:none;">2570315</span><span id="comment-maxDate" style="display:none;">2012/12/5 9:12:05</span>
+				 <span class="comment_date">2012-12-05 09:12</span> | <a id="a_comment_author_2570315" href="http://www.cnblogs.com/codefor/" target="_blank">Codefor</a> <a href="http://space.cnblogs.com/msg/send/Codefor" title="发送站内短消息" class="sendMsg2This">&nbsp;</a><br>
+				<div align="left"><div id="comment_body_2570315" class="blog_comment_body"><img id="comment_2570315_avatar" class="comment-avatar" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/u136795.jpg" alt="" style="display:none;">@MK2 @Q.Lee.lulu redis在并发下性能落后于Go，挂个redis后，redis确实是个瓶颈</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2570315,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2570315,&#39;Bury&#39;,this)">反对(0)</a></div>&nbsp;&nbsp;<span class="comment_actions"></span></div>
+			</div>
+			
+			
+		</div>
+	
+
+
+
+<div id="comments_pager_bottom"></div></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.loadComments();</script>
+<div id="comment_form" class="commentform">
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" id="lnk_RefreshComments" onclick="return RefreshCommentList();">刷新评论</a><a href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return RefreshPage();">刷新页面</a><a href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#top">返回顶部</a></div>
+<div id="comment_form_container"><div class="login_tips">注册用户登录后才能发表评论，请 <a rel="nofollow" href="javascript:void(0);" class="underline" onclick="return login(&#39;commentform&#39;);">登录</a> 或 <a rel="nofollow" href="javascript:void(0);" class="underline" onclick="return register();">注册</a>，<a href="http://www.cnblogs.com/">访问</a>网站首页。</div></div>
+
+<script type="text/javascript">
+    if (typeof commentManager === 'undefined') {
+        commentManager = new blogCommentManager();
+    }
+    commentManager.loadCommentForm();   
+</script>
+
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="site_nav_under"><a href="http://www.cnblogs.com/" target="_blank" title="程序员的网上家园">博客园首页</a><a href="http://q.cnblogs.com/" target="_blank" title="程序员问答社区">博问</a><a href="http://news.cnblogs.com/" target="_blank" title="IT新闻">新闻</a><a href="http://home.cnblogs.com/ing/" target="_blank">闪存</a><a href="http://job.cnblogs.com/" target="_blank">程序员招聘</a><a href="http://kb.cnblogs.com/" target="_blank">知识库</a></div>
+<div id="ad_under_post_holder">
+<div id="google_ad_c1" class="c_ad_block">
+    <!-- cnblogs_blogpost_C1_sitehome -->
+    <div id="div-gpt-ad-1346480159711-0" style="width: 300px; height: 250px;">
+    
+    <iframe id="google_ads_iframe_/1090369/cnblogs_blogpost_C1_sitehome_0" name="google_ads_iframe_/1090369/cnblogs_blogpost_C1_sitehome_0" width="300" height="250" scrolling="no" marginwidth="0" marginheight="0" frameborder="0" style="border: 0px;"></iframe><iframe id="google_ads_iframe_/1090369/cnblogs_blogpost_C1_sitehome_0__hidden__" name="google_ads_iframe_/1090369/cnblogs_blogpost_C1_sitehome_0__hidden__" width="0" height="0" scrolling="no" marginwidth="0" marginheight="0" frameborder="0" style="border: 0px; visibility: hidden; display: none;"></iframe></div>
+</div>
+<div id="blog_news_kb"><div class="itnews c_ad_block"><b>最新IT新闻</b>:<br> ·  <a href="http://news.cnblogs.com/n/171769/" target="_blank">Twitter或于周三发布广告API 提升广告营收</a><br> ·  <a href="http://news.cnblogs.com/n/171768/" target="_blank">索尼明早召开PS4发布会 对微软实施先制打击</a><br> ·  <a href="http://news.cnblogs.com/n/171767/" target="_blank">GitHub Boxen：自动化Mac OS X的配置与管理</a><br> ·  <a href="http://news.cnblogs.com/n/171766/" target="_blank">终于不是老面孔了！梅姐力推的Yahoo主页全新改版</a><br> ·  <a href="http://news.cnblogs.com/n/171765/" target="_blank">iPhone 5第四季度首次成为全球最畅销智能手机</a><br>» <a href="http://news.cnblogs.com/" title="IT新闻" target="_blank">更多新闻...</a></div><div class="itnews c_ad_block" id="kb_block"><b>最新知识库文章</b>:<br><div id="kb_recent"> ·  <a href="http://kb.cnblogs.com/page/157115/" target="_blank">走向“持续部署”</a><br> ·  <a href="http://kb.cnblogs.com/page/114034/" target="_blank">curl 网站开发指南</a><br> ·  <a href="http://kb.cnblogs.com/page/160066/" target="_blank">有关T-SQL的10个好习惯</a><br> ·  <a href="http://kb.cnblogs.com/page/165472/" target="_blank">开发者，别让任何人绑架你的工作节奏</a><br> ·  <a href="http://kb.cnblogs.com/page/169122/" target="_blank">冯大辉：十年莽撞 IT 路</a><br></div>» <a href="http://kb.cnblogs.com/" target="_blank">更多知识库文章...</a></div></div>
+<div id="google_ad_c2" class="c_ad_block">
+    <!-- cnblogs_blogpost_C2_sitehome -->
+    <div id="div-gpt-ad-1346479110744-1" style="width: 468px; height: 60px;">
+    
+    <iframe id="google_ads_iframe_/1090369/cnblogs_blogpost_C2_sitehome_0" name="google_ads_iframe_/1090369/cnblogs_blogpost_C2_sitehome_0" width="468" height="60" scrolling="no" marginwidth="0" marginheight="0" frameborder="0" style="border: 0px;"></iframe></div>
+</div></div>
+<div id="HistoryToday" class="c_ad_block"></div>
+</div>
+
+
+
+
+
+</div>
+<div id="leftcontent">
+	
+		<div id="leftcontentcontainer">
+			
+<!--done-->
+<div class="newsItem">
+	<div id="blog-news" style=""><!--<a myTip="欢迎进去我的Flash站点浏览!" href="http://lulu.512.it/" target="_blank">点此访问我的Flash站</a><br />
+<br />
+-->
+<div style="margin-top: -2px;">
+<div id="AboutMe">
+<div style="text-align: center; padding-bottom: 15px;">
+<img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/2009032412443780.jpg" alt="">
+</div>
+昵称: lulu<br>
+网名: QLeelulu<br>
+大学: GDUT<br>
+城市: 广州=&gt;珠海<br>
+职业: 打字员<br>
+CO. : PowerEasy =&gt; KingSoft<br>
+Mail: QLeelulu@163(gmail).com<br>
+</div>
+<p class="slide"><a id="noFadeup" style="color: white;" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" class="slideAboutMe">Who Am I ?</a></p>
+</div><br>
+
+<!--
+<fieldset>
+<legend>精品站推荐</legend>
+ <a href="http://www.51mvc.com/" alt="专注于ASP.NET MVC技术" target="blank"></a><img src="http://images.cnblogs.com/cnblogs_com/qleelulu/4mvc.jpg" />
+<br/>
+-=51mvc.com=- 研究ASP.NET MVC最新技术、专注于ASP.NET MVC的研究。</a>
+</fieldset>
+-->
+
+
+<!--
+<a href="http://iumimi.cn/" alt="分享你心中的秘密。不能说的秘密全都可以在这里释放"  myTip="分享你心中的秘密。不能说的秘密全都可以在这里释放." target="blank"></a><img src="http://iumimi.cn/Assets/Images/logo2.gif" style="width:180px;" /></a>
+<br/>
+-->
+
+
+<!--twitter-->
+<a target="_blank" href="http://www.twitter.com/QLeelulu"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/follow_me-a.png" alt="Follow QLeelulu on Twitter"></a>
+
+<br>
+
+<fieldset>
+<legend>交流群</legend>
+ASP.NET MVC交流群：<br>QQ群：1215279(满)
+<br>2群：1214648(满)
+<br>3群：47788243
+<br>（加的时候请注明）
+</fieldset><br>
+
+<!--阿里妈妈广告
+<div style="display: none" id="__document_write_ajax_div-1"></div><script type="text/JavaScript">window['__document_write_ajax_callbacks__']['1']();</script>
+<div style="display: none" id="__document_write_ajax_div-2"></div><script  type=text/javascript>window['__document_write_ajax_callbacks__']['2']();</script>
+<br />-->
+<!--51统计-->
+<a href="http://www.51.la/?1709571" target="_blank"><img alt="51.la 专业、免费、强健的访问统计" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/icon_9.gif" style="border:none"></a>
+<img style="width:0px;height:0px" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/go.asp">
+
+<div style="display: none" id="__document_write_ajax_div-4"></div>
+<div id="clicki_widget_2400"></div>
+
+<br>
+<!-- 
+<div style="display: none" id="__document_write_ajax_div-5"></div><script language="javascript" type="text/javascript" >window['__document_write_ajax_callbacks__']['5']();</script>
+-->
+<br>
+<div id="clicki_widget_2399"></div>
+<div id="clicki_widget_2401"></div><div id="profile_block">昵称：<a href="http://home.cnblogs.com/u/QLeelulu/">Q.Lee.lulu</a><br>园龄：<a href="http://home.cnblogs.com/u/QLeelulu/" title="入园时间：2007-10-23">5年4个月</a><br>荣誉：<a href="http://www.cnblogs.com/expert/">推荐博客</a><br>粉丝：<a href="http://home.cnblogs.com/u/QLeelulu/followers/">511</a><br>关注：<a href="http://home.cnblogs.com/u/QLeelulu/followees/">7</a><div id="p_b_follow"></div><div style="display: none" id="__document_write_ajax_div-6"></div></div></div>
+</div>
+
+			<div id="blog-calendar-block" style=""><div id="blog-calendar"><table id="blogCalendar" class="Cal" cellspacing="0" cellpadding="0" title="Calendar">
+	<tbody><tr><td colspan="7"><table class="CalTitle" cellspacing="0">
+		<tbody><tr><td class="CalNextPrev"><a href="javascript:void(0);" onclick="loadBlogCalendar(&#39;2012/07/01&#39;);return false;">&lt;</a></td><td align="center">2012年8月</td><td class="CalNextPrev" align="right"><a href="javascript:void(0);" onclick="loadBlogCalendar(&#39;2012/09/01&#39;);return false;">&gt;</a></td></tr>
+	</tbody></table></td></tr><tr><th class="CalDayHeader" align="center" abbr="日" scope="col">日</th><th class="CalDayHeader" align="center" abbr="一" scope="col">一</th><th class="CalDayHeader" align="center" abbr="二" scope="col">二</th><th class="CalDayHeader" align="center" abbr="三" scope="col">三</th><th class="CalDayHeader" align="center" abbr="四" scope="col">四</th><th class="CalDayHeader" align="center" abbr="五" scope="col">五</th><th class="CalDayHeader" align="center" abbr="六" scope="col">六</th></tr><tr><td class="CalOtherMonthDay" align="center">29</td><td class="CalOtherMonthDay" align="center">30</td><td class="CalOtherMonthDay" align="center">31</td><td align="center">1</td><td align="center">2</td><td align="center">3</td><td class="CalWeekendDay" align="center">4</td></tr><tr><td class="CalWeekendDay" align="center">5</td><td align="center">6</td><td align="center">7</td><td align="center">8</td><td align="center">9</td><td align="center">10</td><td class="CalWeekendDay" align="center">11</td></tr><tr><td class="CalWeekendDay" align="center"><a href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12.html"><u>12</u></a></td><td align="center">13</td><td align="center">14</td><td align="center">15</td><td align="center">16</td><td align="center">17</td><td class="CalWeekendDay" align="center">18</td></tr><tr><td class="CalWeekendDay" align="center">19</td><td align="center">20</td><td align="center">21</td><td align="center">22</td><td align="center">23</td><td align="center">24</td><td class="CalWeekendDay" align="center">25</td></tr><tr><td class="CalWeekendDay" align="center">26</td><td align="center">27</td><td align="center">28</td><td align="center">29</td><td align="center">30</td><td align="center">31</td><td class="CalOtherMonthDay" align="center">1</td></tr><tr><td class="CalOtherMonthDay" align="center">2</td><td class="CalOtherMonthDay" align="center">3</td><td class="CalOtherMonthDay" align="center">4</td><td class="CalOtherMonthDay" align="center">5</td><td class="CalOtherMonthDay" align="center">6</td><td class="CalOtherMonthDay" align="center">7</td><td class="CalOtherMonthDay" align="center">8</td></tr>
+</tbody></table></div>
+</div><br>
+			<div id="blog-sidecolumn">
+
+<div class="mySearch">
+<h3 class="catListTitle">搜索</h3>
+<div id="widget_my_zzk" class="div_my_zzk"><input type="text" id="q" onkeydown="return zzk_go_enter(event);" class="input_my_zzk">&nbsp;<input onclick="zzk_go()" type="button" value="找找看" id="btnZzk" class="btn_my_zzk"></div>
+
+</div>
+
+
+<h3 class="catListTitle">常用链接</h3>
+<ul>
+
+		<li><a id="ctl01_rptMainLinks_lnkLinkItem_0" href="http://www.cnblogs.com/QLeelulu/MyPosts.html">我的随笔</a></li>
+	
+		<li><a id="ctl01_rptMainLinks_lnkLinkItem_1" href="http://www.cnblogs.com/QLeelulu/MyComments.html">我的评论</a></li>
+	
+		<li><a id="ctl01_rptMainLinks_lnkLinkItem_2" title="我发表过评论的随笔" href="http://www.cnblogs.com/QLeelulu/OtherPosts.html">我的参与</a></li>
+	
+		<li><a id="ctl01_rptMainLinks_lnkLinkItem_3" href="http://www.cnblogs.com/QLeelulu/RecentComments.html">最新评论</a></li>
+	
+		<li><a id="ctl01_rptMainLinks_lnkLinkItem_4" href="http://www.cnblogs.com/QLeelulu/tag/">我的标签</a></li>
+	
+</ul>
+<div id="itemListLin_con" style="display:none;">
+
+</div>
+<h3 class="catListTitle">我的标签</h3>
+<div id="MyTag">
+<ul>
+<li><a href="http://www.cnblogs.com/QLeelulu/tag/aspnetmvc/">aspnetmvc</a>(30)</li><li><a href="http://www.cnblogs.com/QLeelulu/tag/ASP.NET%20MVC/">ASP.NET MVC</a>(21)</li><li><a href="http://www.cnblogs.com/QLeelulu/tag/MVC/">MVC</a>(17)</li><li><a href="http://www.cnblogs.com/QLeelulu/tag/javascript/">javascript</a>(15)</li><li><a href="http://www.cnblogs.com/QLeelulu/tag/jQuery/">jQuery</a>(13)</li><li><a href="http://www.cnblogs.com/QLeelulu/tag/python/">python</a>(9)</li><li><a href="http://www.cnblogs.com/QLeelulu/tag/CSS/">CSS</a>(7)</li><li><a href="http://www.cnblogs.com/QLeelulu/tag/node.js/">node.js</a>(6)</li><li><a href="http://www.cnblogs.com/QLeelulu/tag/Oxite/">Oxite</a>(4)</li><li><a href="http://www.cnblogs.com/QLeelulu/tag/asp.net%20mvc%20%E6%95%99%E7%A8%8B/">asp.net mvc 教程</a>(4)</li><li><a href="http://www.cnblogs.com/QLeelulu/tag/">更多</a></li>
+</ul>
+</div>
+		<h3 class="catListTitle">随笔分类</h3>
+		
+				<ul class="catList">
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_0" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/128653.html">.NET(8)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_1" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/124080.html">CMS(2)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_2" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/124073.html">DB4o(1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_3" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/165844.html">Django(3)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_4" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/123323.html">Enterprise Library 3.1(1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_5" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/124076.html">FLEX(1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_6" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/124072.html">JavaScript(35)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_7" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/124071.html">jQuery(21)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_8" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/124079.html">LINQ(4)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_9" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/123326.html">MVC(40)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_10" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/161118.html">Python(15)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_11" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/162672.html">Silverlight(2)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_12" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/164870.html">Unity(1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_13" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/124074.html">VS2008 &amp; .NET 3.5(3)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_14" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/124077.html">WCF</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_15" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/128654.html">WEB标准 &amp; CSS(11)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_16" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/124078.html">WPF</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_17" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/123324.html">翻译(10)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_18" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/124081.html">敏捷开发</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_0_Link_19" class="listitem" href="http://www.cnblogs.com/QLeelulu/category/138246.html">心情笔记(4)</a></li>
+			
+				</ul>
+			
+	
+		<h3 class="catListTitle">随笔档案</h3>
+		
+				<ul class="catList">
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_0" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/09.html">2012年9月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_1" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08.html">2012年8月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_2" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/02.html">2012年2月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_3" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2011/12.html">2011年12月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_4" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2011/09.html">2011年9月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_5" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2011/08.html">2011年8月 (3)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_6" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2011/07.html">2011年7月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_7" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2011/06.html">2011年6月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_8" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2011/05.html">2011年5月 (3)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_9" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2011/03.html">2011年3月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_10" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2011/01.html">2011年1月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_11" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2010/12.html">2010年12月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_12" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2010/08.html">2010年8月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_13" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2010/06.html">2010年6月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_14" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2010/05.html">2010年5月 (5)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_15" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2010/04.html">2010年4月 (3)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_16" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2010/03.html">2010年3月 (4)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_17" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2010/02.html">2010年2月 (4)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_18" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2009/12.html">2009年12月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_19" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2009/11.html">2009年11月 (3)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_20" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2009/09.html">2009年9月 (3)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_21" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2009/07.html">2009年7月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_22" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2009/06.html">2009年6月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_23" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2009/05.html">2009年5月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_24" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2009/04.html">2009年4月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_25" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2009/03.html">2009年3月 (5)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_26" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2009/02.html">2009年2月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_27" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/12.html">2008年12月 (4)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_28" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/11.html">2008年11月 (11)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_29" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/10.html">2008年10月 (13)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_30" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/09.html">2008年9月 (2)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_31" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/08.html">2008年8月 (4)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_32" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/07.html">2008年7月 (5)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_33" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/06.html">2008年6月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_34" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/05.html">2008年5月 (4)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_35" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/04.html">2008年4月 (15)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_36" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/03.html">2008年3月 (22)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_37" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/02.html">2008年2月 (4)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_38" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2008/01.html">2008年1月 (6)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_39" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2007/12.html">2007年12月 (1)</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_1_Link_40" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2007/10.html">2007年10月 (1)</a></li>
+			
+				</ul>
+			
+	
+		<h3 class="catListTitle">.NET 资源</h3>
+		
+				<ul class="catList">
+			
+				</ul>
+			
+	
+		<h3 class="catListTitle">PowerEasy</h3>
+		
+				<ul class="catList">
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_3_Link_0" class="listitem" rel="nofollow" href="http://www.janlogs.cn/Default.aspx" target="_blank">Jannock's Blog</a><a id="ctl03_CatList_LinkList_3_RssLink_0" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://www.janlogs.cn/Default/Feeds.ashx&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_3_Link_1" class="listitem" rel="nofollow" href="http://www.argoy.net/" target="_blank">NONO</a><a id="ctl03_CatList_LinkList_3_RssLink_1" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://www.argoy.net/?feed=rss2&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_3_Link_2" class="listitem" rel="nofollow" href="http://www.heyonglu.com/" target="_blank">阿罗帝耶の笑 (Bbsh' Blog)</a><a id="ctl03_CatList_LinkList_3_RssLink_2" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://www.heyonglu.com/?feed=rss2&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_3_Link_3" class="listitem" rel="nofollow" href="http://dotdty.cnblogs.com/" target="_blank">太阳的博客</a><a id="ctl03_CatList_LinkList_3_RssLink_3" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://dotdty.cnblogs.com/rss&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_3_Link_4" class="listitem" rel="nofollow" href="http://www.ks-pe.com/" target="_blank">小羊</a><a id="ctl03_CatList_LinkList_3_RssLink_4" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://www.ks-pe.com/Rss/rss.aspx&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				</ul>
+			
+	
+		<h3 class="catListTitle">我的好友</h3>
+		
+				<ul class="catList">
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_4_Link_0" class="listitem" rel="nofollow" href="http://www.cnblogs.com/jinbinhan/" target="_blank">&lt;∩扫地僧∩&gt;</a><a id="ctl03_CatList_LinkList_4_RssLink_0" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://www.cnblogs.com/jinbinhan/RSS&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_4_Link_1" class="listitem" rel="nofollow" href="http://www.cnblogs.com/leven/" target="_blank">leven(神鱼)</a><a id="ctl03_CatList_LinkList_4_RssLink_1" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://www.cnblogs.com/leven/rss&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_4_Link_2" class="listitem" rel="nofollow" href="http://fengmk2.cnblogs.com/" target="_blank">MK2</a><a id="ctl03_CatList_LinkList_4_RssLink_2" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://www.cnblogs.com/fengmk2/rss&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_4_Link_3" class="listitem" rel="nofollow" href="http://www.cnblogs.com/szw/" target="_blank">TNT2(SZW)</a><a id="ctl03_CatList_LinkList_4_RssLink_3" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://www.cnblogs.com/szw/&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_4_Link_4" class="listitem" rel="nofollow" href="http://bodianying.com/oscar" target="_blank">卜电影</a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_4_Link_5" class="listitem" rel="nofollow" href="http://milnk.com/" target="_blank">觅链[milnk]</a></li>
+			<li class="c_b_p_link_desc">类似Reddit.com的分享社区</li>
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_4_Link_6" class="listitem" rel="nofollow" href="http://www.cnblogs.com/chsword/" target="_blank">重典 In cnBlog</a><a id="ctl03_CatList_LinkList_4_RssLink_6" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://www.cnblogs.com/chsword/rss&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				<li class="catListItem"> <a id="ctl03_CatList_LinkList_4_Link_7" class="listitem" rel="nofollow" href="http://www.cnblogs.com/024hi/" target="_blank">紫色永恒(老f)</a><a id="ctl03_CatList_LinkList_4_RssLink_7" class="listitem" href="http://www.cnblogs.com/QLeelulu/archive/2012/08/12/2635261.html#" onclick="return open_link(&#39;http://www.cnblogs.com/024hi/rss&#39;);"><img src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/xml(1).gif" alt=""></a></li>
+			
+				</ul>
+			
+	
+
+<h3>积分与排名</h3>
+<ul>
+	<li>
+		积分 -
+		748132
+	</li><li>
+		排名 -
+		65
+	</li>
+</ul>
+
+<h3 class="catListTitle">最新评论</h3>
+<div class="RecentComment" id="RecentComments">
+	<div id="RecentCommentsBlock"><ul>
+    <li class="recent_comment_title"><a href="http://www.cnblogs.com/QLeelulu/archive/2008/10/03/1303612.html#2599216">1. Re:ASP.NET MVC 入门3、Routing</a></li>
+    <li class="recent_comment_body">routes.MapRoute( "Post", "Post/{id}", new { controller = "Post", action = "Index", id = "" } );为什么就匹配不上呢？第二个参数是URL，反应到网址上就是http://XXXX/Post/??。这是怎么匹配不上的？</li>
+    <li class="recent_comment_author">--规定</li>
+    <li class="recent_comment_title"><a href="http://www.cnblogs.com/QLeelulu/archive/2010/02/25/1673757.html#2594790">2. Re:很有意义的404：在你的404页面放置寻找失踪儿童的信息</a></li>
+    <li class="recent_comment_body">@在云端引用嗯，很有创意。国内有相关的吗？现在有了 http://www.qzone.com/xxx</li>
+    <li class="recent_comment_author">--空葫芦</li>
+    <li class="recent_comment_title"><a href="http://www.cnblogs.com/QLeelulu/archive/2008/04/21/1163021.html#2589037">3. Re:jQuery Ajax 全解析</a></li>
+    <li class="recent_comment_body">很棒</li>
+    <li class="recent_comment_author">--chen110xi</li>
+    <li class="recent_comment_title"><a href="http://www.cnblogs.com/QLeelulu/archive/2011/08/28/2156402.html#2584541">4. Re:作为Web开发人员，我为什么喜欢Google Chrome浏览器</a></li>
+    <li class="recent_comment_body">看了一眼,看到说了这么多,如果真正用过firebug来测试的人,感觉是不会这么说的,就一条.我是想怎么让console回车不执行而是ctrl+enter而不用那么麻烦输入js后又自动消失又得重新输入,如果cmd的输入方式会比ssh client那些操作方式好话,我只能无语的说......一个刚出来的东西.重来都不会认为会比存在很久的东西来说它考虑到的东西更多.......虽然,某些方面可能会比fi...</li>
+    <li class="recent_comment_author">--qidizi</li>
+    <li class="recent_comment_title"><a href="http://www.cnblogs.com/QLeelulu/archive/2008/10/22/1317214.html#2581532">5. Re:ASP.NET MVC 入门11、使用AJAX</a></li>
+    <li class="recent_comment_body">看来我就不用说话了</li>
+    <li class="recent_comment_author">--丁丁！</li>
+</ul>
+</div>
+</div>
+
+<h3 class="catListTitle">阅读排行榜</h3>
+<div class="RecentComment" id="TopViewPosts"> 
+	<div id="TopViewPostsBlock"><ul><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/04/21/1163021.html">1. jQuery Ajax 全解析(229106)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/10/05/1303997.html">2. ASP.NET MVC 入门系列教程(106710)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/03/30/1130270.html">3. 广州.NET俱乐部的活动(77460)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/04/01/1133112.html">4. jQuery实例：图片展示效果(59182)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/09/30/1302462.html">5. ASP.NET MVC 入门1、简介(54981)</a></li></ul></div>
+</div>
+
+<h3 class="catListTitle">评论排行榜</h3>
+<div class="RecentComment" id="TopCommentsPosts">
+	<div id="TopFeedbackPostsBlock"><ul><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/04/21/1163021.html">1. jQuery Ajax 全解析(113)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/09/30/1302462.html">2. ASP.NET MVC 入门1、简介(110)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2011/08/28/2156402.html">3. 作为Web开发人员，我为什么喜欢Google Chrome浏览器(107)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2009/03/18/1415795.html">4. ASP.NET MVC 1.0 发布了(90)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/10/05/1303997.html">5. ASP.NET MVC 入门系列教程(84)</a></li></ul></div>
+</div>
+<h3 class="catListTitle">推荐排行榜</h3>
+<div class="RecentComment">
+	<div id="TopDiggPostsBlock"><ul><li><a href="http://www.cnblogs.com/QLeelulu/archive/2011/08/28/2156402.html">1. 作为Web开发人员，我为什么喜欢Google Chrome浏览器(66)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/04/21/1163021.html">2. jQuery Ajax 全解析(44)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/09/30/1302462.html">3. ASP.NET MVC 入门1、简介(29)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2008/03/30/1130270.html">4. 广州.NET俱乐部的活动(21)</a></li><li><a href="http://www.cnblogs.com/QLeelulu/archive/2011/01/28/nodejs_into_and_n2mvc.html">5. Node.js：用JavaScript写服务器端程序-介绍并写个MVC框架(15)</a></li></ul></div>
+</div></div></div>
+	
+</div>
+
+<!--done-->
+<div class="footer">
+	Powered by: <a href="http://www.cnblogs.com/">博客园</a>	模板提供：<a href="http://blog.hjenglish.com/">沪江博客</a>
+	Copyright ©2013 Q.Lee.lulu
+</div>
+
+
+
+<!--PageEndHtml Block Begin-->
+<!--<div align="center">
+
+</div>-->
+
+<!-- Start of Woopra Code --> 
+<script type="text/javascript"> function woopraReady(tracker) {     tracker.setDomain('uuxer.com');     tracker.setIdleTimeout(300000);     tracker.track();     return false; } (function() {     var wsc = document.createElement('script');     wsc.src = document.location.protocol+'//static.woopra.com/js/woopra.js';     wsc.type = 'text/javascript';     wsc.async = true;     var ssc = document.getElementsByTagName('script')[0];     ssc.parentNode.insertBefore(wsc, ssc); })(); </script> 
+<!-- End of Woopra Code -->
+
+<script src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/showhometitle" type="text/javascript"></script>
+<script src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/fadeUp.js" type="text/javascript"></script>
+<script src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/jQuery.Extend.js" type="text/javascript"></script>
+<script language="javascript">
+jQuery(function($){
+	$("a[id != Header1_HeaderTitle][href != http://qleelulu.atx41.idc800.net/flash/][id != noFadeup]").mouseover(function(){ fadeUp(this,255,246,1); });
+	$("#mylinks").navExtend($("#leftcontent")[0]);
+	//更改文章前面的小图片
+$("img[src=/skins/sea/images/title_post.gif]").attr("src","http://www.cnblogs.com/images/cnblogs_com/qleelulu/document.gif");
+});
+
+//About me
+$(".slideAboutMe").click(function(){
+		$("#AboutMe").slideToggle("slow");
+		$(this).toggleClass("active"); 
+		return false;});
+
+//开始滚动新闻
+	var showContent = new Array();
+	
+	addContent("ASP.NET MVC ","http://www.cnblogs.com/QLeelulu/category/123326.html");
+	addContent("Oh ! My pitiful boyfriend !");
+	addContent("jQuery:漂亮的JS框架！", "http://www.cnblogs.com/QLeelulu/category/124071.html");
+	addContent("心若一动，泪就千行");
+	addContent("我翻译的文章", "http://www.cnblogs.com/QLeelulu/category/123324.html");
+	addContent("人生来如风雨，去如微尘");
+	addContent("WEB标准 & CSS", "http://www.cnblogs.com/QLeelulu/category/128654.html");
+	addContent("踮起脚尖,离幸福更近一点吗?");
+
+	function addContent(content,link){
+		if(link)
+			showContent.push("<a href='" + link + "'>" + content + "</a>");
+		else
+			showContent.push(content);
+	}
+
+$(document).ready(function(){
+	for(i=0; i<showContent.length; i++){
+		//$("#FloatDiv>div").append("<div>"+showContent[i]+"</div>");
+	}
+    //$("#FloatDiv").Scroll({line:1,speed:500,timer:2800});
+
+     HideSideBar();//隐藏侧边栏
+
+// Tweetable Konami code
+var k_k=[];
+$(document).keydown( function(e){
+if(k_k.length>=10){k_k.shift();}
+k_k.push(e.keyCode);    if(k_k.toString().indexOf("38,38,40,40,37,39,37,39,66,65")>=0) {      
+$('<img id="stan-approved" style="display: none; position: fixed;_position: absolute; bottom: 32px; right: 32px; z-index: 1000; cursor: pointer; " src="http://pic002.cnblogs.com/img/QLeelulu/200903/2009032412443780.jpg"/>')
+.insertAfter( $("body") )
+    .fadeIn('slow')
+    .animate({opacity: 0.9}, 3000)
+    .fadeOut('slow', function() {
+      $(this).remove();
+    });
+}}
+);
+// End Tweetable Konami code
+
+});
+//结束滚动新闻
+
+</script>
+
+<!--
+<div id="FloatDiv" >
+<div>
+	<div>欢迎来到我的博客！</div>
+</div>
+</div>
+-->
+
+<!--代码高亮JS
+<link rel="stylesheet" type="text/css" href="http://tools.xpus.net/dpsh-1.5.1/Styles/SyntaxHighlighter.css">
+
+<script src="http://tools.xpus.net/dpsh-1.5.1/Scripts/shCore.js"></script>
+<script src="http://tools.xpus.net/dpsh-1.5.1/Scripts/shBrushCSharp.js"></script>
+<script src="http://tools.xpus.net/dpsh-1.5.1/Scripts/shBrushXml.js"></script>
+
+-->
+
+<script type="text/javascript">
+    $(function(){
+        c_url = 'http://s8.hk/api/s?u=';
+        c_url += document.location.href;
+        c_url += '&cb=?'
+        $.getJSON(c_url, function(data){
+            $("<div>本文短址：</div>").css("font-weight", "normal")
+                .css("font-size", "12px")
+                .append($("<a>"+data+"</a>").attr("href", data))
+                .appendTo(".post .postTitle");
+        });
+    });
+</script> 
+
+<!-- clicki统计代码 -->
+<script type="text/javascript">
+(function() {
+	var c = document.createElement('script'); c.type = 'text/javascript'; c.async = true;
+	c.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'www.clicki.cn/boot/44573';
+	var h = document.getElementsByTagName('head')[0]; h.appendChild(c);
+})();
+</script>
+<!--PageEndHtml Block End-->
+<script type="text/javascript" src="./golang与node.js的http模块性能对比测试（go1） - Q.Lee.lulu - 博客园_files/google-analytics.js"></script>
+
+
+</body></html>

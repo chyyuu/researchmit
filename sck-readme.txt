@@ -1,3 +1,25 @@
+my idea
+
+
+----------------------
+how os support support new lang, such as lang?
+----------------------
+question:
+golang said it support multicore better with goroutine and channel mechanism.
+The fact is right?
+on xv6 for better scalability
+golang beleive: Don't communicate by sharing memory; share memory by communicating.
+The idea is true? Can channel mechanism be scalable in current multi core arch? 
+
+-------------------------------------------------------
+How OS support channel mechanism (CSP mechanism)?
+CSP mechanism can be support in kernel?
+OS kernel can use goroutine and channel?
+
+Should vm/sched/fs subsystem support goroutine and channel? 
+
+
+-----------------------
 
 sck
 

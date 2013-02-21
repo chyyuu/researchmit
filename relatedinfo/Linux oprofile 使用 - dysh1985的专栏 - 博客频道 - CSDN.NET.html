@@ -1,0 +1,458 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0053)http://blog.csdn.net/dysh1985/article/details/7873562 -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET</title>
+
+<meta name="description" content="为了找到我们Android 2.3@众志小本上的性能瓶颈，我们使用功能强大的linux性能分析工具oprofile 首先，我们需要内核的支持。所以，要求北大编译了一个支持Oprofile的内核版本。 其次，如何使用？ opcontrol --setupopcontrol --startopcontrol --stop 然后，查看分析报告opreport">
+<script type="text/javascript" async="" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/ga.js"></script><script src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/jquery.js" type="text/javascript"></script>
+<script type="text/javascript" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/ad.js"></script>
+<link rel="Stylesheet" type="text/css" href="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/style.css">
+<link id="RSSLink" title="RSS" type="application/rss+xml" rel="alternate" href="http://blog.csdn.net/dysh1985/rss/list">
+<link rel="shortcut icon" href="http://blog.csdn.net/favicon.ico">
+<link type="text/css" rel="stylesheet" href="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/default.css">
+<link type="text/css" rel="stylesheet" href="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/style(1).css"></head>
+<body>
+<script src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/pub_topnav_2011.js" type="text/javascript"></script><link rel="stylesheet" type="text/css" href="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/navtop_2012.css">
+<div class="nav_top_2011">
+<p><span style="color:red;">您还未登录！</span>|<a href="https://passport.csdn.net/account/login" target="_top">登录</a>|<a href="https://passport.csdn.net/account/register" target="_top">注册</a>|<a href="https://passport.csdn.net/help/faq" target="_blank">帮助</a></p><ul>
+<li><a href="http://www.csdn.net/" target="_blank">首页</a></li>
+<li><a href="http://news.csdn.net/" target="_blank">业界</a></li>
+<li><a href="http://mobile.csdn.net/" target="_blank">移动</a></li>
+<li><a href="http://cloud.csdn.net/" target="_blank">云计算</a></li>
+<li><a href="http://sd.csdn.net/" target="_blank">研发</a></li>
+<li><a href="http://bbs.csdn.net/" target="_blank">论坛</a></li>
+<li><a href="http://blog.csdn.net/" target="_blank">博客</a></li>
+<li><a href="http://download.csdn.net/" target="_blank">下载</a></li>
+<li class="more"><h2 id="topnav_btnmore" onclick="showNavMore(this)"><a href="javascript:void(0);">更多</a></h2>
+<div id="topnav_hidlist">
+<iframe name="nav_frm" src="about:blank" width="92" height="178" scrolling="no" frameborder="no"></iframe>
+</div>
+</li>
+</ul>
+</div>
+
+
+<div id="container">
+<div id="header">
+    <div class="header">
+        <div id="blog_title">
+            <h1><a href="http://blog.csdn.net/dysh1985">dysh1985的专栏</a></h1>
+            <h2></h2>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+    </div>
+</div>
+<div id="navigator">
+    <div class="navigator_bg"></div>
+    <div class="navigator">
+        <ul>
+            <li id="btnContents"><a href="http://blog.csdn.net/dysh1985?viewmode=contents"><span><img src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/ico_list.gif">目录视图</span></a></li>
+            <li id="btnView"><a href="http://blog.csdn.net/dysh1985?viewmode=list"><span><img src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/ico_summary.gif">摘要视图</span></a></li>
+            <li id="btnRss"><a href="http://blog.csdn.net/dysh1985/rss/list"><span><img src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/ico_rss.gif">订阅</span></a></li>
+</ul>
+    </div>
+</div>
+<script type="text/javascript">
+    var username = "dysh1985";
+    var blog_address = "http://blog.csdn.net/dysh1985";
+    var static_host = "http://static.blog.csdn.net";
+    var currentUserName = "";
+</script>
+        
+<div id="body">
+<div id="main">
+<div class="main">
+<div class="notice"> 
+
+<a href="http://surveies.csdn.net/survey/comein/546" target="_blank">
+<font color="blue">CSDN客服工作问卷调查   </font></a>
+
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/blogdevteam/article/details/8572108" target="_blank"><font color="red">社区专家谈 12306</font></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://bbs.csdn.net/topics/390366069" target="_blank"><font color="red">CSDN社区“海外程序员经验谈”活动正式上线 
+</font></a>
+
+<br>
+
+
+
+
+
+<a href="http://www.csdn.net/article/2013-02-17/2814150" target="_blank">
+<font color="red">专访王豫翔：编程道路上的“三少三多” </font></a>
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+<a href="http://blog.csdn.net/csdnstudent/article/details/8077932" target="_blank">
+<font color="red">2013年全国百所高校巡讲讲师招募  </font></a>
+
+
+</div><div id="article_details" class="details">
+    <div class="article_title">
+    <span class="ico ico_type_Repost"></span>
+    <h3>
+        <span class="link_title"><a href="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET.html">
+        Linux oprofile 使用
+        </a></span>
+    </h3>
+</div>
+
+        
+    <div class="article_manage">
+        <span class="link_categories">
+        分类：
+            <a href="http://blog.csdn.net/dysh1985/article/category/1144762">Linux-debug</a> 
+        </span>
+    <span class="link_postdate">2012-08-16 15:38</span>
+    <span class="link_view" title="阅读次数">91人阅读</span>
+    <span class="link_comments" title="评论次数"><a href="http://blog.csdn.net/dysh1985/article/details/7873562#comments">评论</a>(0)</span>
+    <span class="link_collect"><a href="javascript:void(0);" onclick="javascript:collectArticle(&#39;Linux oprofile 使用&#39;,&#39;7873562&#39;);return false;" title="收藏">收藏</a></span>
+    <span class="link_report"><a href="http://blog.csdn.net/dysh1985/article/details/7873562#report" onclick="javascript:report(7873562,2);return false;" title="举报">举报</a></span>
+    
+</div>
+
+
+    
+<div id="article_content" class="article_content">
+
+<p>为了找到我们Android 2.3@众志小本上的性能瓶颈，我们使用功能强大的linux性能分析工具oprofile</p>
+<p>&nbsp;</p>
+<p>首先，我们需要内核的支持。所以，要求北大编译了一个支持Oprofile的内核版本。</p>
+<p>&nbsp;</p>
+<p>其次，如何使用？</p>
+<p>&nbsp;</p>
+<p><span style="white-space:pre"><span style="white-space:pre"></span>opcontrol</span>&nbsp;--setup</p>
+<p><span style="white-space:pre"></span>opcontrol --start</p>
+<p><span style="white-space:pre"></span>opcontrol --stop</p>
+<p>&nbsp;</p>
+<p>然后，查看分析报告</p>
+<p><span style="white-space:pre"></span>opreport</p>
+<p>&nbsp;</p>
+<p></p>
+<div class="dp-highlighter bg_c-sharp">
+<div class="bar">
+<div class="tools"><strong>[c-sharp]</strong> <a class="ViewSource" title="view plain" href="http://blog.csdn.net/fengkehuan/article/details/6309674#">
+view plain</a><a class="CopyToClipboard" title="copy" href="http://blog.csdn.net/fengkehuan/article/details/6309674#">copy</a><a class="PrintSource" title="print" href="http://blog.csdn.net/fengkehuan/article/details/6309674#">print</a><a class="About" title="?" href="http://blog.csdn.net/fengkehuan/article/details/6309674#">?</a><div style="position: absolute; left: 632px; top: 714px; width: 19px; height: 18px; z-index: 99;"><embed id="ZeroClipboardMovie_1" src="http://static.blog.csdn.net/scripts/ZeroClipboard/ZeroClipboard.swf" loop="false" menu="false" quality="best" bgcolor="#ffffff" width="19" height="18" name="ZeroClipboardMovie_1" align="middle" allowscriptaccess="always" allowfullscreen="false" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer" flashvars="id=1&amp;width=19&amp;height=18" wmode="transparent"></div></div>
+</div>
+<ol class="dp-c">
+<li class="alt"><span><span>CPU:&nbsp;CPU&nbsp;with&nbsp;timer&nbsp;interrupt,&nbsp;speed&nbsp;0&nbsp;MHz&nbsp;(estimated)&nbsp;&nbsp;</span></span></li><li><span>Profiling&nbsp;through&nbsp;timer&nbsp;interrupt&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TIMER:0|&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;samples|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%|&nbsp;&nbsp;</span></li><li class="alt"><span>------------------&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3447&nbsp;15.3452&nbsp;Xunigfx&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3358&nbsp;14.9490&nbsp;libvcllu.so&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3062&nbsp;13.6313&nbsp;libswlu.so&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2139&nbsp;&nbsp;9.5223&nbsp;no-vmlinux&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1571&nbsp;&nbsp;6.9937&nbsp;libuno_sal.so.3&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1512&nbsp;&nbsp;6.7311&nbsp;libcairo.so.2.10800.4&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1417&nbsp;&nbsp;6.3082&nbsp;libpthread-2.9.so&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;801&nbsp;&nbsp;3.5659&nbsp;libgcc_s.so.1&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;791&nbsp;&nbsp;3.5213&nbsp;libc-2.9.so&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;743&nbsp;&nbsp;3.3077&nbsp;libfreetype.so.6.3.20&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;740&nbsp;&nbsp;3.2943&nbsp;libsvxlu.so&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;415&nbsp;&nbsp;1.8475&nbsp;libsvllu.so&nbsp;&nbsp;</span></li><li><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;367&nbsp;&nbsp;1.6338&nbsp;soffice.bin&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;267&nbsp;&nbsp;1.1886&nbsp;libtllu.so&nbsp;&nbsp;</span></li></ol>
+</div>
+<div class="dp-highlighter bg_c-sharp"><div class="bar"><div class="tools"><b>[c-sharp]</b> <a href="http://blog.csdn.net/dysh1985/article/details/7873562#" class="ViewSource" title="view plain" onclick="dp.sh.Toolbar.Command(&#39;ViewSource&#39;,this);return false;">view plain</a><a href="http://blog.csdn.net/dysh1985/article/details/7873562#" class="CopyToClipboard" title="copy" onclick="dp.sh.Toolbar.Command(&#39;CopyToClipboard&#39;,this);return false;">copy</a><a href="http://blog.csdn.net/dysh1985/article/details/7873562#" class="PrintSource" title="print" onclick="dp.sh.Toolbar.Command(&#39;PrintSource&#39;,this);return false;">print</a><a href="http://blog.csdn.net/dysh1985/article/details/7873562#" class="About" title="?" onclick="dp.sh.Toolbar.Command(&#39;About&#39;,this);return false;">?</a><div style="position: absolute; left: 632px; top: 1098px; width: 19px; height: 18px; z-index: 99;"><embed id="ZeroClipboardMovie_2" src="http://static.blog.csdn.net/scripts/ZeroClipboard/ZeroClipboard.swf" loop="false" menu="false" quality="best" bgcolor="#ffffff" width="19" height="18" name="ZeroClipboardMovie_2" align="middle" allowscriptaccess="always" allowfullscreen="false" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer" flashvars="id=2&amp;width=19&amp;height=18" wmode="transparent"></div></div></div><ol start="1" class="dp-c"><li class="alt"><span><span>CPU:&nbsp;CPU&nbsp;with&nbsp;timer&nbsp;interrupt,&nbsp;speed&nbsp;0&nbsp;MHz&nbsp;(estimated)&nbsp;&nbsp;</span></span></li><li class=""><span>Profiling&nbsp;through&nbsp;timer&nbsp;interrupt&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TIMER:0|&nbsp;&nbsp;</span></li><li class=""><span>&nbsp;&nbsp;samples|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%|&nbsp;&nbsp;</span></li><li class="alt"><span>------------------&nbsp;&nbsp;</span></li><li class=""><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3447&nbsp;15.3452&nbsp;Xunigfx&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3358&nbsp;14.9490&nbsp;libvcllu.so&nbsp;&nbsp;</span></li><li class=""><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3062&nbsp;13.6313&nbsp;libswlu.so&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2139&nbsp;&nbsp;9.5223&nbsp;no-vmlinux&nbsp;&nbsp;</span></li><li class=""><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1571&nbsp;&nbsp;6.9937&nbsp;libuno_sal.so.3&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1512&nbsp;&nbsp;6.7311&nbsp;libcairo.so.2.10800.4&nbsp;&nbsp;</span></li><li class=""><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1417&nbsp;&nbsp;6.3082&nbsp;libpthread-2.9.so&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;801&nbsp;&nbsp;3.5659&nbsp;libgcc_s.so.1&nbsp;&nbsp;</span></li><li class=""><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;791&nbsp;&nbsp;3.5213&nbsp;libc-2.9.so&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;743&nbsp;&nbsp;3.3077&nbsp;libfreetype.so.6.3.20&nbsp;&nbsp;</span></li><li class=""><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;740&nbsp;&nbsp;3.2943&nbsp;libsvxlu.so&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;415&nbsp;&nbsp;1.8475&nbsp;libsvllu.so&nbsp;&nbsp;</span></li><li class=""><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;367&nbsp;&nbsp;1.6338&nbsp;soffice.bin&nbsp;&nbsp;</span></li><li class="alt"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;267&nbsp;&nbsp;1.1886&nbsp;libtllu.so&nbsp;&nbsp;</span></li></ol></div><textarea class="c-sharp" style="display: none;" name="code" rows="15" cols="50">CPU: CPU with timer interrupt, speed 0 MHz (estimated)
+Profiling through timer interrupt
+          TIMER:0|
+  samples|      %|
+------------------
+     3447 15.3452 Xunigfx
+     3358 14.9490 libvcllu.so
+     3062 13.6313 libswlu.so
+     2139  9.5223 no-vmlinux
+     1571  6.9937 libuno_sal.so.3
+     1512  6.7311 libcairo.so.2.10800.4
+     1417  6.3082 libpthread-2.9.so
+      801  3.5659 libgcc_s.so.1
+      791  3.5213 libc-2.9.so
+      743  3.3077 libfreetype.so.6.3.20
+      740  3.2943 libsvxlu.so
+      415  1.8475 libsvllu.so
+      367  1.6338 soffice.bin
+      267  1.1886 libtllu.so</textarea>&nbsp;
+<p></p>
+<p></p>
+<p></p>
+<p>也可以使用opreport -d 查看所有的细节，包括函数链接符号的地址。</p>
+<p>然后通过objdump结合虚拟地址来查看函数名。</p>
+<p>&nbsp;</p>
+<p>另外我们可以发现，在android 2.3/externl/目录下也有个oprofile。对于这个层的oprofile,我们有同学有研究：</p>
+<p><a href="http://hi.baidu.com/snownight/blog/item/6d81c3ce305fc11193457e56.html">http://hi.baidu.com/snownight/blog/item/6d81c3ce305fc11193457e56.html</a></p>
+<p>&nbsp;</p>
+<p>具体的Oprofile详细介绍参见：</p>
+<p><a href="http://www.ibm.com/developerworks/cn/linux/l-oprof/">http://www.ibm.com/developerworks/cn/linux/l-oprof/</a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h1>补充：</h1>
+<p>出现的问题：</p>
+<p>&nbsp;opcontrol --init</p>
+<p>&nbsp;</p>
+<p>cat: can't open '/dev/oprofile/cpu_type': No such file or directory</p>
+<p>Unable to open cpu_type file for reading</p>
+<p>Make sure you have done opcontrol --init</p>
+<p>cpu_type 'unset' is not valid</p>
+<p>you should upgrade oprofile or force the use of timer mode</p>
+<p>解决：</p>
+<p>mount -t oprofilefs nodev /dev/oprofile</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><a href="http://blog.csdn.net/Kasmile/archive/2009/07/30/4393482.aspx">http://blog.csdn.net/Kasmile/archive/2009/07/30/4393482.aspx</a></p>
+<p>&nbsp;</p>
+<p><a href="http://blog.csdn.net/louieuser/archive/2011/01/19/6152175.aspx">http://blog.csdn.net/louieuser/archive/2011/01/19/6152175.aspx</a></p>
+<p>Arm平台Oprofile移植</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>来自:<a href="http://blog.csdn.net/fengkehuan/article/details/6309674">http://blog.csdn.net/fengkehuan/article/details/6309674</a></p>
+
+</div>
+<div class="share_buttons" id="sharePanel"><span>分享到：</span> <a name="sina" class="share_sina" title="分享到新浪微博"></a><a name="qq" class="share_qq" title="分享到腾讯微博"></a></div>
+<!--192.168.1.237-->
+<div class="article_next_prev">
+    <li class="prev_article"><span>上一篇：</span><a href="http://blog.csdn.net/dysh1985/article/details/7873397">gdb Debug 程序</a></li>
+    <li class="next_article"><span>下一篇：</span><a href="http://blog.csdn.net/dysh1985/article/details/7874777">我用到的工具软件 汇总</a></li>
+</div>
+
+
+    
+</div>
+<div id="ad_cen"><iframe id="ad_frm_0" frameborder="0" scrolling="no" style="border-width: 0px; overflow: hidden; width: 732px; height: 97px;" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/ad(1).html"></iframe></div>
+<script type="text/javascript">
+    new Ad(4, 'ad_cen');
+</script>
+<div id="comment_title" class="panel_head">查看评论<a name="comments"></a></div>
+<div id="comment_list"><br>&nbsp;&nbsp;暂无评论<br><br><div class="clear"></div></div>
+<div id="comment_bar"></div>
+<div id="comment_form"><div class="guest_link">您还没有登录,请<a href="javascript:void(0);" onclick="javascript:csdn.showLogin(function (dat) {js_logined(dat.data.userName);});">[登录]</a>或<a href="http://passport.csdn.net/account/register?from=http%3A%2F%2Fblog.csdn.net%2Fdysh1985%2Farticle%2Fdetails%2F7873562">[注册]</a></div></div>
+<div class="announce">* 以上用户言论只代表其个人观点，不代表CSDN网站的观点或立场<a name="reply"></a><a name="quote"></a></div>
+<script type="text/javascript">
+    var fileName = '7873562';
+    var commentscount = 0;
+    var islock = false
+</script>
+<script type="text/javascript" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/comment.js"></script>
+<div id="ad_bot"><iframe id="ad_frm_1" frameborder="0" scrolling="no" style="border-width: 0px; overflow: hidden; width: 732px; height: 170px;" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/ad(2).html"></iframe></div>
+<script type="text/javascript">
+    new Ad(5, 'ad_bot');
+</script>
+<div id="report_dialog"></div>
+
+<div id="d-top" style="display: none;">
+<a id="d-top-a" href="http://blog.csdn.net/dysh1985/article/details/7873562#" title="回到顶部">
+<img src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/top.png" alt="TOP"></a>
+</div>
+<script type="text/javascript">
+    $(function(){
+        var d_top=$('#d-top');
+        document.onscroll=function(){
+            var scrTop=(document.body.scrollTop||document.documentElement.scrollTop);
+            if(scrTop>500){
+                d_top.show();
+            }else{
+                d_top.hide();
+            }
+        }
+        $('#d-top-a').click(function(){
+            scrollTo(0,0);
+            this.blur();
+            return false;
+        });
+    });
+</script>
+
+
+
+<div class="clear"></div>
+</div>
+</div>
+
+<div id="side">
+<div class="side">
+<div id="panel_Profile" class="panel">
+    <ul class="panel_head"><span>个人资料</span></ul>
+    <ul class="panel_body profile">
+        <div id="blog_userface">
+            <a href="http://my.csdn.net/dysh1985" target="_blank">
+            <img src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/1_dysh1985.jpg" title="访问我的空间" style="max-width:90%">
+            </a>
+            <br>
+            <span><a href="http://my.csdn.net/dysh1985" class="user_name" target="_blank">dysh1985</a></span>
+        </div>
+<div class="interact">
+<!--<a href="#" class="attented" title="已关注"></a>-->
+<a href="javascript:void(0);" class="attent" id="span_add_follow" title="[加关注]"></a>
+<a href="javascript:void(0);" class="letter" onclick="loginto(1)" title="[发私信]"></a>
+</div>
+        <div id="blog_medal">
+        <div id="bms_box"><a href="http://medal.blog.csdn.net/allmedal.aspx" target="_blank"><img src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/holdon_s2.gif" onmouseover="m_over_m(this,0)" onmouseout="m_out_m()" alt=""></a></div></div>
+        <ul id="blog_rank">
+            <li>访问：<span>11713次</span></li>
+            <li>积分：<span>295分</span></li>
+            <li>排名：<span>千里之外</span></li>
+        </ul>
+        <ul id="blog_statistics">
+            <li>原创：<span>15篇</span></li>
+            <li>转载：<span>23篇</span></li>
+            <li>译文：<span>0篇</span></li>
+            <li>评论：<span>1条</span></li>
+        </ul>
+    </ul>
+</div>
+<script type="text/javascript">
+    var _blogger = 'dysh1985';
+</script>
+
+
+
+<div class="panel" id="panel_Search">
+    <ul class="panel_head"><span>文章搜索</span></ul>
+    <ul class="panel_body">
+        <form id="frmSearch" action="http://so.csdn.net/search" class="form_search" target="_blank">
+        <span><input id="inputSearch" type="text" class="blogsearch" title="请输入关键字"></span>
+        <input id="btnSubmit" type="submit" value="搜索" title="search in blog">
+        <input type="hidden" name="q" id="inputQ">
+        <input type="hidden" name="t" value="blog">
+        <a id="btnSearchBlog" target="_blank"></a>
+        </form>
+    </ul>
+</div><div id="panel_Category" class="panel">
+    <ul class="panel_head"><span>文章分类</span></ul>
+    <ul class="panel_body">
+        <li>
+        <a href="http://blog.csdn.net/dysh1985/article/category/1144760">Linux</a><span>(6)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/dysh1985/article/category/1144762">Linux-debug</a><span>(3)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/dysh1985/article/category/1146641">语言</a><span>(1)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/dysh1985/article/category/1146643">编程技巧</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/dysh1985/article/category/1146687">shell</a><span>(6)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/dysh1985/article/category/1157101">杂项</a><span>(6)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/dysh1985/article/category/1158471">GNU-ToolS</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/dysh1985/article/category/1158775">ARM</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/dysh1985/article/category/1174321">LINUX-USB</a><span>(2)</span>
+        </li>
+        <li>
+        <a href="http://blog.csdn.net/dysh1985/article/category/1179265">VMware</a><span>(1)</span>
+        </li>
+    </ul>
+</div><div id="panel_Archive" class="panel">
+    <ul class="panel_head"><span>文章存档</span></ul>
+    <ul class="panel_body">
+        <div id="archive_list"><li><a href="http://blog.csdn.net/dysh1985/article/month/2012/08">2012年08月</a><span>(6)</span></li><li><a href="http://blog.csdn.net/dysh1985/article/month/2012/07">2012年07月</a><span>(5)</span></li><li><a href="http://blog.csdn.net/dysh1985/article/month/2012/06">2012年06月</a><span>(4)</span></li><li><a href="http://blog.csdn.net/dysh1985/article/month/2012/05">2012年05月</a><span>(16)</span></li><li><a href="http://blog.csdn.net/dysh1985/article/month/2011/05">2011年05月</a><span>(4)</span></li><span class="hidelist" style="display:none;"><li><a href="http://blog.csdn.net/dysh1985/article/month/2010/07">2010年07月</a><span>(3)</span></li></span><div id="archive_list_button" class="list_closed">展开</div></div>
+    </ul>
+</div>
+<div id="hotarticls" class="panel">
+    <ul class="panel_head"><span>阅读排行</span></ul>
+    <ul class="panel_body itemlist">
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7612515" title="很齐全的怀孕常识 收藏备用">很齐全的怀孕常识 收藏备用</a><span>(2336)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/6418477" title="关于ubuntu 10.10上安装中文输入法">关于ubuntu 10.10上安装中文输入法</a><span>(918)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7682163" title="一份完整的ACSII码表">一份完整的ACSII码表</a><span>(769)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7642997" title="硬盘﻿﻿4K高级格式化">硬盘﻿﻿4K高级格式化</a><span>(751)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7565421" title="awk教程">awk教程</a><span>(683)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7597105" title="module_init的加载和释放">module_init的加载和释放</a><span>(633)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7857592" title="毕业后的五年拉开大家差距的原因在哪里？">毕业后的五年拉开大家差距的原因在哪里？</a><span>(517)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/5774900" title="linux 下的 DL库 函数">linux 下的 DL库 函数</a><span>(466)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/5715561" title="QT pro文件中变量的含义">QT pro文件中变量的含义</a><span>(402)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/6408073" title="GDB符号调试器(一)">GDB符号调试器(一)</a><span>(382)</span>
+        </li>
+    </ul>
+</div>
+<div id="hotarticls2" class="panel">
+    <ul class="panel_head"><span>评论排行</span></ul>
+    <ul class="panel_body itemlist">
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7558148" title="Linux addr2line具体应用指南">Linux addr2line具体应用指南</a><span>(1)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/5715458" title="从零开始">从零开始</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7714705" title="VMWare上网设置/网络配置">VMWare上网设置/网络配置</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7693747" title="Linux下 hid quirks的研究">Linux下 hid quirks的研究</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7682163" title="一份完整的ACSII码表">一份完整的ACSII码表</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7642997" title="硬盘﻿﻿4K高级格式化">硬盘﻿﻿4K高级格式化</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7633302" title="Gcc __attribute__参数介绍">Gcc __attribute__参数介绍</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7621544" title="GNU ARM汇编">GNU ARM汇编</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7619894" title="GNU 工具 nm">GNU 工具 nm</a><span>(0)</span>
+        </li>
+        <li>
+            <a href="http://blog.csdn.net/dysh1985/article/details/7716415" title="USB 2.0中的图表(一)">USB 2.0中的图表(一)</a><span>(0)</span>
+        </li>
+    </ul>
+</div>
+<div id="homepageArticles" class="panel">
+    <ul class="panel_head"><span>推荐文章</span></ul>
+    <ul class="panel_body" id="ad_commend">
+    <iframe id="ad_frm_2" frameborder="0" scrolling="no" style="border-width: 0px; overflow: hidden; width: 182px; height: 222px;" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/ad.html"></iframe></ul>
+</div>
+<script type="text/javascript">
+    new Ad(12, 'ad_commend');
+</script><div id="newcomments" class="panel">
+<ul class="panel_head"><span>最新评论</span></ul>
+<ul class="panel_body itemlist">
+    <li>
+    <a href="http://blog.csdn.net/dysh1985/article/details/7558148#comments">Linux addr2line具体应用指南</a>
+    <p style="margin:0px;"><a href="http://blog.csdn.net/ronando_lu" class="user_name">ronando_lu</a>:
+好文好文， 博主神勇~~!
+    </p>
+    </li>
+</ul>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+
+<div class="clear"></div>
+</div>
+
+<script type="text/javascript" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/newblog.min.js"></script>
+<script type="text/javascript" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/showblogmedal.ashx"></script>
+
+<script type="text/javascript" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/publib_footer.js"></script><link rel="stylesheet" type="text/css" href="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/pub_footer_2012.css"><div class="pub_footerall"><dl><dt></dt> <dd><a href="http://www.csdn.net/company/about.html" target="_blank">公司简介</a>|<a href="http://www.csdn.net/company/recruit.html" target="_blank">招贤纳士</a>|<a href="http://www.csdn.net/company/marketing.html" target="_blank">广告服务</a>|<a href="http://www.csdn.net/company/account.html" target="_blank">银行汇款帐号</a>|<a href="http://www.csdn.net/company/contact.html" target="_blank">联系方式</a>|<a href="http://www.csdn.net/company/statement.html" target="_blank">版权声明</a>|<a href="http://www.csdn.net/company/layer.html" target="_blank">法律顾问</a>|<a href="mailto:webmaster@csdn.net">问题报告</a></dd><dd>京&nbsp;ICP&nbsp;证&nbsp;070598&nbsp;号</dd><dd>北京创新乐知信息技术有限公司 版权所有</dd><dd>世纪乐知(北京)网络技术有限公司 提供技术支持</dd><dd>江苏乐知网络技术有限公司 提供商务支持</dd><dd><img src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/ico_email.gif" alt="" title=""> 联系邮箱：webmaster(at)csdn.net</dd><dd>Copyright © 1999-2012, CSDN.NET, All Rights Reserved&nbsp;<a href="http://www.hd315.gov.cn/beian/view.asp?bianhao=010202001032100010" target="_blank"><img src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/gongshang_logos.gif" alt="GongshangLogo" title=""></a></dd></dl></div><script type="text/javascript" charset="utf-8" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/tracking.js"></script>
+
+<script type="text/javascript" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/login.js"></script>
+<script type="text/javascript">document.write("<img src=http://counter.csdn.net/pv.aspx?id=24 border=0 width=0 height=0>");</script><img src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/pv.aspx" border="0" width="0" height="0">
+<script type="text/javascript" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/counter.js"></script><script type="text/javascript" charset="UTF-8" src="./Linux oprofile 使用 - dysh1985的专栏 - 博客频道 - CSDN.NET_files/msg.popup.js"></script>
+
+
+</div>
+
+</body></html>

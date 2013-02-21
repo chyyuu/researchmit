@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<!-- saved from url=(0090)http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/ -->
+<html lang="en-US" class=" social-js"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Go vs C benchmark. Could Go be faster than C? | Desarrollando y emprendiendo</title>
+<!-- Platform WordPress Framework By PageLines - www.PageLines.com -->
+<link rel="shortcut icon" href="http://roberto.costumero.es/wp-content/themes/platform/admin/images/favicon-pagelines.ico" type="image/x-icon">
+<link rel="profile" href="http://gmpg.org/xfn/11">
+<link rel="alternate" type="application/rss+xml" title="Desarrollando y emprendiendo » Feed" href="http://roberto.costumero.es/en/feed/">
+<link rel="alternate" type="application/rss+xml" title="Desarrollando y emprendiendo » Comments Feed" href="http://roberto.costumero.es/en/comments/feed/">
+<link rel="alternate" type="application/rss+xml" title="Desarrollando y emprendiendo » Go vs C benchmark. Could Go be faster than C? Comments Feed" href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/feed/">
+<link rel="stylesheet" id="pagelines-stylesheet-css" href="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/style.css" type="text/css" media="all">
+<!--[if IE 7]>
+<link rel='stylesheet' id='ie7-style-css'  href='http://roberto.costumero.es/wp-content/themes/platform/css/ie7.css?ver=1.4.2' type='text/css' media='all' />
+<![endif]-->
+<link rel="stylesheet" id="social_comments-css" href="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/comments.css" type="text/css" media="screen">
+<link rel="stylesheet" id="jetpack-widgets-css" href="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/widgets.css" type="text/css" media="all">
+<link rel="stylesheet" id="wp-syntax-css-css" href="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/wp-syntax.css" type="text/css" media="all">
+<script src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/quant.js" async="" type="text/javascript"></script><script type="text/javascript" async="" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/ga.js"></script><script src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/cb=gapi.loaded_0" async=""></script><script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/plusone.js" gapi_processed="true">{lang: "es"}</script><script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/jquery.js"></script>
+<script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/comment-reply.min.js"></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://roberto.costumero.es/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://roberto.costumero.es/wp-includes/wlwmanifest.xml"> 
+<link rel="prev" title="Does it worth specializing in a programming languange?" href="http://roberto.costumero.es/en/2011/11/11/%c2%bfmerece-la-pena-especializarse-en-un-lenguaje-de-programacion/">
+<link rel="next" title="Go vs C benchmark. Could Go be faster than C? (part II)" href="http://roberto.costumero.es/en/2012/02/10/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c-parte-ii/">
+<meta name="generator" content="WordPress 3.5">
+<link rel="canonical" href="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo.html">
+<link rel="shortlink" href="http://wp.me/p1L96j-3s">
+
+<meta http-equiv="Content-Language" content="en-US">
+<style type="text/css" media="screen">
+.qtrans_flag span { display:none }
+.qtrans_flag { height:12px; width:18px; display:block }
+.qtrans_flag_and_text { padding-left:20px }
+.qtrans_flag_es { background:url(http://roberto.costumero.es/wp-content/plugins/qtranslate/flags/es.png) no-repeat }
+.qtrans_flag_en { background:url(http://roberto.costumero.es/wp-content/plugins/qtranslate/flags/gb.png) no-repeat }
+</style>
+<link hreflang="es" href="http://roberto.costumero.es/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/" rel="alternate">
+
+<!-- Jetpack Open Graph Tags -->
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go vs C benchmark. Could Go be faster than C?">
+<meta property="og:url" content="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/">
+<meta property="og:description" content="During last semester I was attending Multiprocessor Architectures course, given at Facultad de Informática where I study my Computer Science degree. As part of the assignments due to pass the cours...">
+<meta property="og:site_name" content="Desarrollando y emprendiendo">
+<meta property="og:image" content="http://roberto.costumero.es/slides/go-c-benchmark/secuential_test1.png">
+<meta property="og:image" content="http://roberto.costumero.es/slides/go-c-benchmark/parallel_test1.png">
+<meta property="og:image" content="http://roberto.costumero.es/slides/go-c-benchmark/secuential_test2.png">
+<meta property="og:image" content="http://roberto.costumero.es/slides/go-c-benchmark/parallel_test2.png">
+<meta property="og:image" content="http://roberto.costumero.es/slides/go-c-benchmark/secuential_test3.png">
+<meta property="og:image" content="http://roberto.costumero.es/slides/go-c-benchmark/parallel_test3.png">
+<link rel="stylesheet" id="dynamic-css" href="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/dynamic.css" type="text/css" media="all">
+<link rel="stylesheet" type="text/css" id="gravatar-card-css" href="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/hovercard.css"><link rel="stylesheet" type="text/css" id="gravatar-card-services-css" href="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/services.css"><style type="text/css">.fb_hidden{position:absolute;top:-10000px;z-index:10001}
+.fb_invisible{display:none}
+.fb_reset{background:none;border-spacing:0;border:0;color:#000;cursor:auto;direction:ltr;font-family:"lucida grande", tahoma, verdana, arial, sans-serif;font-size:11px;font-style:normal;font-variant:normal;font-weight:normal;letter-spacing:normal;line-height:1;margin:0;overflow:visible;padding:0;text-align:left;text-decoration:none;text-indent:0;text-shadow:none;text-transform:none;visibility:visible;white-space:normal;word-spacing:normal}
+.fb_link img{border:none}
+.fb_dialog{background:rgba(82, 82, 82, .7);position:absolute;top:-10000px;z-index:10001}
+.fb_dialog_advanced{padding:10px;-moz-border-radius:8px;-webkit-border-radius:8px;border-radius:8px}
+.fb_dialog_content{background:#fff;color:#333}
+.fb_dialog_close_icon{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yA/x/IE9JII6Z1Ys.png) no-repeat scroll 0 0 transparent;_background-image:url(http://static.ak.fbcdn.net/rsrc.php/v2/y6/x/s816eWC-2sl.gif);cursor:pointer;display:block;height:15px;position:absolute;right:18px;top:17px;width:15px;top:8px\9;right:7px\9}
+.fb_dialog_mobile .fb_dialog_close_icon{top:5px;left:5px;right:auto}
+.fb_dialog_padding{background-color:transparent;position:absolute;width:1px;z-index:-1}
+.fb_dialog_close_icon:hover{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yA/x/IE9JII6Z1Ys.png) no-repeat scroll 0 -15px transparent;_background-image:url(http://static.ak.fbcdn.net/rsrc.php/v2/y6/x/s816eWC-2sl.gif)}
+.fb_dialog_close_icon:active{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yA/x/IE9JII6Z1Ys.png) no-repeat scroll 0 -30px transparent;_background-image:url(http://static.ak.fbcdn.net/rsrc.php/v2/y6/x/s816eWC-2sl.gif)}
+.fb_dialog_loader{background-color:#f2f2f2;border:1px solid #606060;font-size:24px;padding:20px}
+.fb_dialog_top_left,
+.fb_dialog_top_right,
+.fb_dialog_bottom_left,
+.fb_dialog_bottom_right{height:10px;width:10px;overflow:hidden;position:absolute}
+/* @noflip */
+.fb_dialog_top_left{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yR/x/8YeTNIlTZjm.png) no-repeat 0 0;left:-10px;top:-10px}
+/* @noflip */
+.fb_dialog_top_right{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yR/x/8YeTNIlTZjm.png) no-repeat 0 -10px;right:-10px;top:-10px}
+/* @noflip */
+.fb_dialog_bottom_left{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yR/x/8YeTNIlTZjm.png) no-repeat 0 -20px;bottom:-10px;left:-10px}
+/* @noflip */
+.fb_dialog_bottom_right{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yR/x/8YeTNIlTZjm.png) no-repeat 0 -30px;right:-10px;bottom:-10px}
+.fb_dialog_vert_left,
+.fb_dialog_vert_right,
+.fb_dialog_horiz_top,
+.fb_dialog_horiz_bottom{position:absolute;background:#525252;filter:alpha(opacity=70);opacity:.7}
+.fb_dialog_vert_left,
+.fb_dialog_vert_right{width:10px;height:100%}
+.fb_dialog_vert_left{margin-left:-10px}
+.fb_dialog_vert_right{right:0;margin-right:-10px}
+.fb_dialog_horiz_top,
+.fb_dialog_horiz_bottom{width:100%;height:10px}
+.fb_dialog_horiz_top{margin-top:-10px}
+.fb_dialog_horiz_bottom{bottom:0;margin-bottom:-10px}
+.fb_dialog_iframe{line-height:0}
+.fb_dialog_content .dialog_title{background:#6d84b4;border:1px solid #3b5998;color:#fff;font-size:14px;font-weight:bold;margin:0}
+.fb_dialog_content .dialog_title > span{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yD/x/Cou7n-nqK52.gif)
+no-repeat 5px 50%;float:left;padding:5px 0 7px 26px}
+body.fb_hidden{-webkit-transform:none;height:100%;margin:0;left:-10000px;overflow:visible;position:absolute;top:-10000px;width:100%
+}
+.fb_dialog.fb_dialog_mobile.loading{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yc/x/3rhSv5V8j3o.gif)
+white no-repeat 50% 50%;min-height:100%;min-width:100%;overflow:hidden;position:absolute;top:0;z-index:10001}
+.fb_dialog.fb_dialog_mobile.loading.centered{max-height:590px;min-height:590px;max-width:500px;min-width:500px}
+#fb-root #fb_dialog_ipad_overlay{background:rgba(0, 0, 0, .45);position:absolute;left:0;top:0;width:100%;min-height:100%;z-index:10000}
+#fb-root #fb_dialog_ipad_overlay.hidden{display:none}
+.fb_dialog.fb_dialog_mobile.loading iframe{visibility:hidden}
+.fb_dialog_content .dialog_header{-webkit-box-shadow:white 0 1px 1px -1px inset;background:-webkit-gradient(linear, 0 0, 0 100%, from(#738ABA), to(#2C4987));border-bottom:1px solid;border-color:#1d4088;color:#fff;font:14px Helvetica, sans-serif;font-weight:bold;text-overflow:ellipsis;text-shadow:rgba(0, 30, 84, .296875) 0 -1px 0;vertical-align:middle;white-space:nowrap}
+.fb_dialog_content .dialog_header table{-webkit-font-smoothing:subpixel-antialiased;height:43px;width:100%
+}
+.fb_dialog_content .dialog_header td.header_left{font-size:12px;padding-left:5px;vertical-align:middle;width:60px
+}
+.fb_dialog_content .dialog_header td.header_right{font-size:12px;padding-right:5px;vertical-align:middle;width:60px
+}
+.fb_dialog_content .touchable_button{background:-webkit-gradient(linear, 0 0, 0 100%, from(#4966A6),
+color-stop(0.5, #355492), to(#2A4887));border:1px solid #29447e;-webkit-background-clip:padding-box;-webkit-border-radius:3px;-webkit-box-shadow:rgba(0, 0, 0, .117188) 0 1px 1px inset,
+rgba(255, 255, 255, .167969) 0 1px 0;display:inline-block;margin-top:3px;max-width:85px;line-height:18px;padding:4px 12px;position:relative}
+.fb_dialog_content .dialog_header .touchable_button input{border:none;background:none;color:#fff;font:12px Helvetica, sans-serif;font-weight:bold;margin:2px -12px;padding:2px 6px 3px 6px;text-shadow:rgba(0, 30, 84, .296875) 0 -1px 0}
+.fb_dialog_content .dialog_header .header_center{color:#fff;font-size:16px;font-weight:bold;line-height:18px;text-align:center;vertical-align:middle}
+.fb_dialog_content .dialog_content{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yJ/x/jKEcVPZFk-2.gif) no-repeat 50% 50%;border:1px solid #555;border-bottom:0;border-top:0;height:150px}
+.fb_dialog_content .dialog_footer{background:#f2f2f2;border:1px solid #555;border-top-color:#ccc;height:40px}
+#fb_dialog_loader_close{float:left}
+.fb_dialog.fb_dialog_mobile .fb_dialog_close_button{text-shadow:rgba(0, 30, 84, .296875) 0 -1px 0}
+.fb_dialog.fb_dialog_mobile .fb_dialog_close_icon{visibility:hidden}
+.fb_iframe_widget{position:relative;display:-moz-inline-block;display:inline-block}
+.fb_iframe_widget iframe{position:absolute}
+.fb_iframe_widget_lift{z-index:1}
+.fb_iframe_widget span{display:inline-block;position:relative;text-align:justify;vertical-align:text-bottom}
+.fb_hide_iframes iframe{position:relative;left:-10000px}
+.fb_iframe_widget_loader{position:relative;display:inline-block}
+.fb_iframe_widget_fluid{display:inline}
+.fb_iframe_widget_fluid span{width:100%}
+.fb_iframe_widget_loader iframe{min-height:32px;z-index:2;zoom:1}
+.fb_iframe_widget_loader .FB_Loader{background:url(http://static.ak.fbcdn.net/rsrc.php/v2/yJ/x/jKEcVPZFk-2.gif) no-repeat;height:32px;width:32px;margin-left:-16px;position:absolute;left:50%;z-index:4}
+.fb_button_simple,
+.fb_button_simple_rtl{background-image:url(http://static.ak.fbcdn.net/rsrc.php/v2/yH/x/eIpbnVKI9lR.png);background-repeat:no-repeat;cursor:pointer;outline:none;text-decoration:none}
+.fb_button_simple_rtl{background-position:right 0}
+.fb_button_simple .fb_button_text{margin:0 0 0 20px;padding-bottom:1px}
+.fb_button_simple_rtl .fb_button_text{margin:0 10px 0 0}
+a.fb_button_simple:hover .fb_button_text,
+a.fb_button_simple_rtl:hover .fb_button_text,
+.fb_button_simple:hover .fb_button_text,
+.fb_button_simple_rtl:hover .fb_button_text{text-decoration:underline}
+.fb_button,
+.fb_button_rtl{background:#29447e url(http://static.ak.fbcdn.net/rsrc.php/v2/yl/x/FGFbc80dUKj.png);background-repeat:no-repeat;cursor:pointer;display:inline-block;padding:0 0 0 1px;text-decoration:none;outline:none}
+.fb_button .fb_button_text,
+.fb_button_rtl .fb_button_text{background:#5f78ab url(http://static.ak.fbcdn.net/rsrc.php/v2/yl/x/FGFbc80dUKj.png);border-top:solid 1px #879ac0;border-bottom:solid 1px #1a356e;color:#fff;display:block;font-family:"lucida grande",tahoma,verdana,arial,sans-serif;font-weight:bold;padding:2px 6px 3px 6px;margin:1px 1px 0 21px;text-shadow:none}
+a.fb_button,
+a.fb_button_rtl,
+.fb_button,
+.fb_button_rtl{text-decoration:none}
+a.fb_button:active .fb_button_text,
+a.fb_button_rtl:active .fb_button_text,
+.fb_button:active .fb_button_text,
+.fb_button_rtl:active .fb_button_text{border-bottom:solid 1px #29447e;border-top:solid 1px #45619d;background:#4f6aa3;text-shadow:none}
+.fb_button_xlarge,
+.fb_button_xlarge_rtl{background-position:left -60px;font-size:24px;line-height:30px}
+.fb_button_xlarge .fb_button_text{padding:3px 8px 3px 12px;margin-left:38px}
+a.fb_button_xlarge:active{background-position:left -99px}
+.fb_button_xlarge_rtl{background-position:right -268px}
+.fb_button_xlarge_rtl .fb_button_text{padding:3px 8px 3px 12px;margin-right:39px}
+a.fb_button_xlarge_rtl:active{background-position:right -307px}
+.fb_button_large,
+.fb_button_large_rtl{background-position:left -138px;font-size:13px;line-height:16px}
+.fb_button_large .fb_button_text{margin-left:24px;padding:2px 6px 4px 6px}
+a.fb_button_large:active{background-position:left -163px}
+.fb_button_large_rtl{background-position:right -346px}
+.fb_button_large_rtl .fb_button_text{margin-right:25px}
+a.fb_button_large_rtl:active{background-position:right -371px}
+.fb_button_medium,
+.fb_button_medium_rtl{background-position:left -188px;font-size:11px;line-height:14px}
+a.fb_button_medium:active{background-position:left -210px}
+.fb_button_medium_rtl{background-position:right -396px}
+.fb_button_text_rtl,
+.fb_button_medium_rtl .fb_button_text{padding:2px 6px 3px 6px;margin-right:22px}
+a.fb_button_medium_rtl:active{background-position:right -418px}
+.fb_button_small,
+.fb_button_small_rtl{background-position:left -232px;font-size:10px;line-height:10px}
+.fb_button_small .fb_button_text{padding:2px 6px 3px;margin-left:17px}
+a.fb_button_small:active,
+.fb_button_small:active{background-position:left -250px}
+.fb_button_small_rtl{background-position:right -440px}
+.fb_button_small_rtl .fb_button_text{padding:2px 6px;margin-right:18px}
+a.fb_button_small_rtl:active{background-position:right -458px}
+.fb_share_count_wrapper{position:relative;float:left}
+.fb_share_count{background:#b0b9ec none repeat scroll 0 0;color:#333;font-family:"lucida grande", tahoma, verdana, arial, sans-serif;text-align:center}
+.fb_share_count_inner{background:#e8ebf2;display:block}
+.fb_share_count_right{margin-left:-1px;display:inline-block}
+.fb_share_count_right .fb_share_count_inner{border-top:solid 1px #e8ebf2;border-bottom:solid 1px #b0b9ec;margin:1px 1px 0 1px;font-size:10px;line-height:10px;padding:2px 6px 3px;font-weight:bold}
+.fb_share_count_top{display:block;letter-spacing:-1px;line-height:34px;margin-bottom:7px;font-size:22px;border:solid 1px #b0b9ec}
+.fb_share_count_nub_top{border:none;display:block;position:absolute;left:7px;top:35px;margin:0;padding:0;width:6px;height:7px;background-repeat:no-repeat;background-image:url(http://static.ak.fbcdn.net/rsrc.php/v2/yP/x/bSOHtKbCGYI.png)}
+.fb_share_count_nub_right{border:none;display:inline-block;padding:0;width:5px;height:10px;background-repeat:no-repeat;background-image:url(http://static.ak.fbcdn.net/rsrc.php/v2/yL/x/i_oIVTKMYsL.png);vertical-align:top;background-position:right 5px;z-index:10;left:2px;margin:0 2px 0 0;position:relative}
+.fb_share_no_count{display:none}
+.fb_share_size_Small .fb_share_count_right .fb_share_count_inner{font-size:10px}
+.fb_share_size_Medium .fb_share_count_right .fb_share_count_inner{font-size:11px;padding:2px 6px 3px;letter-spacing:-1px;line-height:14px}
+.fb_share_size_Large .fb_share_count_right .fb_share_count_inner{font-size:13px;line-height:16px;padding:2px 6px 4px;font-weight:normal;letter-spacing:-1px}
+.fb_share_count_hidden .fb_share_count_nub_top,
+.fb_share_count_hidden .fb_share_count_top,
+.fb_share_count_hidden .fb_share_count_nub_right,
+.fb_share_count_hidden .fb_share_count_right{visibility:hidden}
+.fb_connect_bar_container div,
+.fb_connect_bar_container span,
+.fb_connect_bar_container a,
+.fb_connect_bar_container img,
+.fb_connect_bar_container strong{background:none;border-spacing:0;border:0;direction:ltr;font-style:normal;font-variant:normal;letter-spacing:normal;line-height:1;margin:0;overflow:visible;padding:0;text-align:left;text-decoration:none;text-indent:0;text-shadow:none;text-transform:none;visibility:visible;white-space:normal;word-spacing:normal;vertical-align:baseline}
+.fb_connect_bar_container{position:fixed;left:0 !important;right:0 !important;height:42px !important;padding:0 25px !important;margin:0 !important;vertical-align:middle !important;border-bottom:1px solid #333 !important;background:#3b5998 !important;z-index:99999999 !important;overflow:hidden !important}
+.fb_connect_bar_container_ie6{position:absolute;top:expression(document.compatMode=="CSS1Compat"? document.documentElement.scrollTop+"px":body.scrollTop+"px")}
+.fb_connect_bar{position:relative;margin:auto;height:100%;width:100%;padding:6px 0 0 0 !important;background:none;color:#fff !important;font-family:"lucida grande", tahoma, verdana, arial, sans-serif !important;font-size:13px !important;font-style:normal !important;font-variant:normal !important;font-weight:normal !important;letter-spacing:normal !important;line-height:1 !important;text-decoration:none !important;text-indent:0 !important;text-shadow:none !important;text-transform:none !important;white-space:normal !important;word-spacing:normal !important}
+.fb_connect_bar a:hover{color:#fff}
+.fb_connect_bar .fb_profile img{height:30px;width:30px;vertical-align:middle;margin:0 6px 5px 0}
+.fb_connect_bar div a,
+.fb_connect_bar span,
+.fb_connect_bar span a{color:#bac6da;font-size:11px;text-decoration:none}
+.fb_connect_bar .fb_buttons{float:right;margin-top:7px}
+.fb_edge_widget_with_comment{position:relative;*z-index:1000}
+.fb_edge_widget_with_comment span.fb_edge_comment_widget{position:absolute}
+.fb_edge_widget_with_comment span.fb_send_button_form_widget{z-index:1}
+.fb_edge_widget_with_comment span.fb_send_button_form_widget .FB_Loader{left:0;top:1px;margin-top:6px;margin-left:0;background-position:50% 50%;background-color:#fff;height:150px;width:394px;border:1px #666 solid;border-bottom:2px solid #283e6c;z-index:1}
+.fb_edge_widget_with_comment span.fb_send_button_form_widget.dark .FB_Loader{background-color:#000;border-bottom:2px solid #ccc}
+.fb_edge_widget_with_comment span.fb_send_button_form_widget.siderender
+.FB_Loader{margin-top:0}
+.fbpluginrecommendationsbarleft,
+.fbpluginrecommendationsbarright{position:fixed !important;bottom:0;z-index:999}
+/* @noflip */
+.fbpluginrecommendationsbarleft{left:10px}
+/* @noflip */
+.fbpluginrecommendationsbarright{right:10px}</style></head>
+<body class="single single-post postid-214 single-format-standard full_width ttype-single tmain-single" data-twttr-rendered="true">
+<div id="site" class="one-sidebar-right"> <!-- #site // Wraps #header, #page-main, #footer - closed in footer -->
+	<div id="page"> <!-- #page // Wraps #header, #page-main - closed in footer -->
+		<div id="page-canvas">
+						<div id="header" class="container-group fix">
+				<div class="outline">
+					<div id="branding" class="container fix">
+	<div class="texture">
+		<div class="content">
+			<div class="content-pad">
+<div class="branding_wrap">
+	<div class="title-container"><a class="home site-title" href="http://roberto.costumero.es/" title="Home">Desarrollando y emprendiendo</a><h6 class="site-description subhead">Contando mis pasos como desarrollador y emprendedor</h6></div>		
+	
+	<div class="icons" style="bottom: 0px; right: px;">
+
+				<a target="_blank" href="http://roberto.costumero.es/en/feed/" class="rsslink"></a>
+		
+																			</div>
+</div>
+				<div class="clear"></div>
+			</div>
+		</div>
+	</div>
+</div>
+<div id="primary-nav" class="container fix">
+	<div class="texture">
+		<div class="content">
+			<div class="content-pad">
+	<div id="nav_row" class="main_nav fix">
+	
+	<ul id="menu-nav" class="main-nav">
+		<li class="page_item page-item-2"><a href="http://roberto.costumero.es/en/acerca-de/">About</a></li>
+<li class="page_item page-item-55"><a href="http://roberto.costumero.es/en/menciones/">Mentions</a></li>
+<li class="page_item page-item-30"><a href="http://roberto.costumero.es/en/transparencias/">Slides</a></li>
+<li class="page_item page-item-32"><a href="http://roberto.costumero.es/en/manuales/">Manuals</a></li>
+<li class="page_item page-item-34"><a href="http://roberto.costumero.es/en/proyectos/">Projects</a></li>
+	</ul><form method="get" class="searchform" action="http://roberto.costumero.es/" onsubmit="this.submit();return false;">
+	<fieldset>
+		<input type="text" value="Search" name="s" class="searchfield" onfocus="if (this.value == &#39;Search&#39;) {this.value = &#39;&#39;;}" onblur="if (this.value == &#39;&#39;) {this.value = &#39;Search&#39;;}">
+
+		<input type="image" class="submit btn" name="submit" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/search-btn.png" alt="Go">
+	</fieldset>
+</form>
+	</div>
+
+				<div class="clear"></div>
+			</div>
+		</div>
+	</div>
+</div>
+				</div>
+			</div>
+						<div id="page-main" class="container-group fix"> <!-- #page-main // closed in footer -->
+				<div id="dynamic-content" class="outline fix">
+					<div id="maincontent" class="container fix">
+	<div class="texture">
+		<div class="content">
+			<div class="content-pad">
+<div id="pagelines_content" class="one-sidebar-right fix">
+	
+		<div id="column-wrap" class="fix">
+		
+				<div id="column-main" class="mcolumn fix">
+			<div class="mcolumn-pad">
+				<div id="postnav" class="copy fix">
+	<div class="copy-pad">
+   			<div class="post-nav fix"> 
+			<span class="previous"><a href="http://roberto.costumero.es/en/2011/11/11/%c2%bfmerece-la-pena-especializarse-en-un-lenguaje-de-programacion/" rel="prev">Does it worth specializing in a programming languange?</a></span> 
+			<span class="next"><a href="http://roberto.costumero.es/en/2012/02/10/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c-parte-ii/" rel="next">Go vs C benchmark. Could Go be faster than C? (part II)</a></span>
+		</div>
+		<div class="clear"></div>
+	</div>
+</div>
+<div id="theloop" class="copy fix">
+	<div class="copy-pad">
+<div class="post-214 post type-post status-publish format-standard hentry category-c category-go category-programacion tag-c tag-concurrencia tag-go tag-golang tag-paralelismo tag-programacion fpost" id="post-214">
+				
+				
+					
+						<div class="post-meta fix">	
+							
+							<div class="post-header fix post-nothumb" style="">
+																<div class="post-title-section fix">
+
+									<div class="post-title fix">
+										
+										<h1 class="entry-title">Go vs C benchmark. Could Go be faster than C?</h1>
+<div class="metabar"><em><span class="sword">By</span> <span class="author vcard"><span class="fn"><a href="http://roberto.costumero.es/en/author/roberto/" title="Posts by Roberto" rel="author">Roberto</a></span></span> <span class="sword">On</span> <span class="date time published" title="2012-02-07T20:47:40+0000">07/02/2012</span>  · <span class="post-comments"><a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/#comments">7 Comments</a></span> · <span class="sword">In</span> <span class="categories"><a href="http://roberto.costumero.es/en/category/c/" title="View all posts in C" rel="category tag">C</a>, <a href="http://roberto.costumero.es/en/category/go/" title="View all posts in Go" rel="category tag">Go</a>, <a href="http://roberto.costumero.es/en/category/programacion/" title="View all posts in Coding" rel="category tag">Coding</a></span>  </em></div>										
+									</div>
+
+
+								</div>
+															</div>				
+						</div>
+					
+					  	
+						<div class="entry_wrap fix">
+						
+							<div class="entry_content">
+								<p>During last semester I was attending <a href="http://www.datsi.fi.upm.es/docencia/arq-MP/">Multiprocessor Architectures</a> course, given at <a href="http://www.fi.upm.es/">Facultad de Informática</a> where I study my Computer Science degree.</p>
+<p>As part of the assignments due to pass the course, we had to do several programs written in C to benchmark matrix multiplication by testing different techniques and technologies. First of all we had to do a secuential program in three different versions:</p>
+<ul>
+<li>A normal one where the result matrix is ordered by rows and the loops range the matrix by rows too</li>
+<li>An “inter” version where the result matrix is ordered by rows but the loops range the matrix by columns (loops exchange).</li>
+<li>A “noacum” version where the variable keeping up the partial sums of the elements is deleted and each time a value is calculated, it is written to and read from the result matrix.</li>
+</ul>
+<p>Later on, we had to do a parallel implementation using OpenMP, which will not be explained here, and another one using 3 threads. In this version we have other three versions:</p>
+<ul>
+<li>One where we use bounded threads (system or kernel level threads) and we parallelize elements of the result matrix. Each thread is bounded to a system process and there is real parallelism.</li>
+<li>Another one where we use bounded threads but we parallelize entire rows of the result matrix.</li>
+<li>A last one where we use unbounded threads (user level threads) parallelizing elements of the result matrix where there is no real parallelism as we multiplex several threads into a system process.</li>
+</ul>
+<p>There are some considerations to be made. The programs where made and compiled for a 64 bit machine using Linux CentOS 6.0 with kernel 2.6.32. This machine is part of a cluster though programs were running in a single computer, and mounts two Quad-core ©Intel Xeon X5450 microprocessor at 3GHz. So we have a 8 core machine in 2 dies, which each of them has separate Cache L1 for instructions and data with 32KB capacity each and a write-back policy, and they share a 12MB Cache L2. Some interesting values in the configuration of the machine are that max locked memory is limited to 64KB per user and the stack size is 10,240 KBytes.</p>
+<p>Another considerations are that <strong>this version of Linux doesn’t support unbounded threads</strong> in C, so we will not have into account their execution times and that the Go versions have been done using the GOMAXPROCS function to determine the existence of real parallelism.</p>
+<p>Before digging into the code and the time results let’s see which tests have been passed and how are the matrix we will be multiplying:</p>
+<ul>
+<li><strong>Test 1</strong></li>
+<ul>
+<li><em>Matrix 1</em>: 800×900 – 720,000 elements. </li>
+<li><em>Matrix 2</em>: 900×3000 – 2,700,000 elements.</li>
+<li><em>Result Matrix</em>: 800×3000 – 2,400,000 elements.</li>
+</ul>
+<li><strong>Test 2</strong></li>
+<ul>
+<li><em>Matrix 1</em>: 8000×90 – 720,000 elements.</li>
+<li><em>Matrix 2</em>: 90×8000 – 720,000 elements.</li>
+<li><em>Result Matrix</em>: 8000×8000 – 64,000,000 elements</li>
+</ul>
+<li><strong>Test 3</strong></li>
+<ul>
+<li><em>Matrix 1</em>: 8000×10 – 80,000 elements.</li>
+<li><em>Matrix 2</em>: 10×80000 – 800,000 elements.</li>
+<li><em>Result Matrix</em>: 8000×80000 – 640,000,000 elements.</li>
+</ul>
+</ul>
+<p>So let’s analyze the source code proposed. To minimize the differences between the C an Go programs the global structure is being coherent between both languages although there could be better implementations in both. This test is supposed to compare how each language performs with a common implementation, rather than having its best performance in each version.</p>
+<p>Source code shown here is explained. The full version can be downloaded on GitHub (<a href="https://github.com/rcostu/Go-vs-C-Matrix-benchmark">https://github.com/rcostu/Go-vs-C-Matrix-benchmark</a>).</p>
+<p><strong>Note.-</strong> GCC version used is [gcc version 4.4.6 20110731 (Red Hat 4.4.6-3) (GCC)] and Go version is [0c39eee85b0d weekly/weekly.2011-12-06].</p>
+<p>There are two different implementations depending on how matrix are declared. The files called Matrix, contain matrix defined as vectors of vectors in C as follows:</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="c" style="font-family:monospace;"><span style="color: #993333;">int</span> <span style="color: #339933;">**</span>matrix1 <span style="color: #339933;">=</span> <span style="color: #009900;">(</span><span style="color: #993333;">int</span> <span style="color: #339933;">**</span><span style="color: #009900;">)</span> <span style="color: #000066;">calloc</span><span style="color: #009900;">(</span>matrix1_rows<span style="color: #339933;">,</span> <span style="color: #993333;">sizeof</span><span style="color: #009900;">(</span><span style="color: #993333;">int</span><span style="color: #339933;">*</span><span style="color: #009900;">)</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span>
+<span style="color: #b1b100;">for</span> <span style="color: #009900;">(</span>i <span style="color: #339933;">=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span> i <span style="color: #339933;">&lt;</span> matrix1_rows<span style="color: #339933;">;</span> i<span style="color: #339933;">++</span><span style="color: #009900;">)</span><span style="color: #009900;">{</span>
+    matrix1<span style="color: #009900;">[</span>i<span style="color: #009900;">]</span> <span style="color: #339933;">=</span> <span style="color: #009900;">(</span><span style="color: #993333;">int</span> <span style="color: #339933;">*</span><span style="color: #009900;">)</span> <span style="color: #000066;">calloc</span><span style="color: #009900;">(</span>matrix1_cols<span style="color: #339933;">,</span> <span style="color: #993333;">sizeof</span><span style="color: #009900;">(</span><span style="color: #993333;">int</span><span style="color: #009900;">)</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span>
+<span style="color: #009900;">}</span></pre></td></tr></tbody></table></div>
+
+<p>Go Version:</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="c" style="font-family:monospace;">matrix1 <span style="color: #339933;">:=</span> make<span style="color: #009900;">(</span><span style="color: #009900;">[</span><span style="color: #009900;">]</span><span style="color: #009900;">[</span><span style="color: #009900;">]</span><span style="color: #993333;">int</span><span style="color: #339933;">,</span> matrix1_rows<span style="color: #009900;">)</span>
+<span style="color: #b1b100;">for</span> i <span style="color: #339933;">:=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span> i <span style="color: #339933;">&lt;</span> matrix1_rows<span style="color: #339933;">;</span> i<span style="color: #339933;">++</span> <span style="color: #009900;">{</span>
+    matrix1<span style="color: #009900;">[</span>i<span style="color: #009900;">]</span> <span style="color: #339933;">=</span> make<span style="color: #009900;">(</span><span style="color: #009900;">[</span><span style="color: #009900;">]</span><span style="color: #993333;">int</span><span style="color: #339933;">,</span> matrix1_cols<span style="color: #009900;">)</span>
+<span style="color: #009900;">}</span></pre></td></tr></tbody></table></div>
+
+<p>The files named with <em>vector</em> declare matrix as a single vector making displacements such as <em>matrix[i * cols + j]</em>, where i and j are the indexes of an element and <em>cols</em> is the number of columns in the matrix. They are declared in C as follows:</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="c" style="font-family:monospace;"><span style="color: #993333;">int</span> <span style="color: #339933;">*</span>matrix1 <span style="color: #339933;">=</span> <span style="color: #009900;">(</span><span style="color: #993333;">int</span> <span style="color: #339933;">*</span><span style="color: #009900;">)</span> <span style="color: #000066;">calloc</span><span style="color: #009900;">(</span>matrix1_rows <span style="color: #339933;">*</span> matrix1_cols<span style="color: #339933;">,</span> <span style="color: #993333;">sizeof</span><span style="color: #009900;">(</span><span style="color: #993333;">int</span><span style="color: #009900;">)</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span></pre></td></tr></tbody></table></div>
+
+<p>Go version:</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="c" style="font-family:monospace;">matrix1 <span style="color: #339933;">:=</span> make<span style="color: #009900;">(</span><span style="color: #009900;">[</span><span style="color: #009900;">]</span><span style="color: #993333;">int</span><span style="color: #339933;">,</span> matrix1_rows <span style="color: #339933;">*</span> matrix1_cols<span style="color: #009900;">)</span></pre></td></tr></tbody></table></div>
+
+<p>Every single version has a <strong><em>init_matrix</em></strong> function which sets the matrix elements to 1. This function is<strong> executed in one thread</strong> both in secuential and parallel versions and <strong>parallelism is only applied to calculations</strong>.</p>
+<p>Matrix multiplication is done as follows in C (or its equivalent in Go):</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="c" style="font-family:monospace;"><span style="color: #b1b100;">for</span> <span style="color: #009900;">(</span>i <span style="color: #339933;">=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span> i <span style="color: #339933;">&lt;</span> matrix1_rows<span style="color: #339933;">;</span> i<span style="color: #339933;">++</span><span style="color: #009900;">)</span> <span style="color: #009900;">{</span>
+    <span style="color: #b1b100;">for</span> <span style="color: #009900;">(</span>j <span style="color: #339933;">=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span> j <span style="color: #339933;">&lt;</span> matrix2_cols<span style="color: #339933;">;</span> j<span style="color: #339933;">++</span><span style="color: #009900;">)</span> <span style="color: #009900;">{</span>
+        acum <span style="color: #339933;">=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span>
+        <span style="color: #b1b100;">for</span> <span style="color: #009900;">(</span>k <span style="color: #339933;">=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span> k <span style="color: #339933;">&lt;</span> matrix1_cols<span style="color: #339933;">;</span> k<span style="color: #339933;">++</span><span style="color: #009900;">)</span> <span style="color: #009900;">{</span>
+            acum <span style="color: #339933;">+=</span> matrix1<span style="color: #009900;">[</span>i<span style="color: #009900;">]</span><span style="color: #009900;">[</span>k<span style="color: #009900;">]</span> <span style="color: #339933;">*</span> matrix2<span style="color: #009900;">[</span>k<span style="color: #009900;">]</span><span style="color: #009900;">[</span>j<span style="color: #009900;">]</span><span style="color: #339933;">;</span>
+        <span style="color: #009900;">}</span>
+        matrixR<span style="color: #009900;">[</span>i<span style="color: #009900;">]</span><span style="color: #009900;">[</span>j<span style="color: #009900;">]</span> <span style="color: #339933;">=</span> acum<span style="color: #339933;">;</span>
+    <span style="color: #009900;">}</span>
+<span style="color: #009900;">}</span></pre></td></tr></tbody></table></div>
+
+<p>The parallel version has this variables defined at the top (C version listed):</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="c" style="font-family:monospace;"><span style="color: #666666; font-style: italic;">// Thread list</span>
+pthread_t <span style="color: #339933;">*</span>thread_list<span style="color: #339933;">;</span>
+<span style="color: #666666; font-style: italic;">// Variables to get exclusive access</span>
+pthread_mutex_t mutex<span style="color: #339933;">;</span>
+<span style="color: #666666; font-style: italic;">// Number of pending jobs</span>
+<span style="color: #993333;">int</span> pending_jobs <span style="color: #339933;">=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span>
+<span style="color: #666666; font-style: italic;">// Struct to store the job to be done.</span>
+<span style="color: #993333;">struct</span> job <span style="color: #009900;">{</span>
+    <span style="color: #993333;">int</span> i<span style="color: #339933;">,</span> j<span style="color: #339933;">;</span>
+    <span style="color: #993333;">struct</span> job <span style="color: #339933;">*</span>next<span style="color: #339933;">;</span>
+<span style="color: #009900;">}</span><span style="color: #339933;">;</span>
+<span style="color: #666666; font-style: italic;">// Simple linked list of total jobs.</span>
+<span style="color: #993333;">struct</span> job <span style="color: #339933;">*</span>job_list <span style="color: #339933;">=</span> NULL<span style="color: #339933;">;</span>
+<span style="color: #993333;">struct</span> job <span style="color: #339933;">*</span>last_job <span style="color: #339933;">=</span> NULL<span style="color: #339933;">;</span></pre></td></tr></tbody></table></div>
+
+<p>Jobs are added an deleted from the list as indicated in this functions:</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="c" style="font-family:monospace;"><span style="color: #993333;">void</span> add_job<span style="color: #009900;">(</span><span style="color: #993333;">int</span> i<span style="color: #339933;">,</span> <span style="color: #993333;">int</span> j<span style="color: #009900;">)</span><span style="color: #009900;">{</span>
+    <span style="color: #993333;">struct</span> job <span style="color: #339933;">*</span>job <span style="color: #339933;">=</span> <span style="color: #000066;">malloc</span><span style="color: #009900;">(</span><span style="color: #993333;">sizeof</span><span style="color: #009900;">(</span><span style="color: #993333;">struct</span> job<span style="color: #009900;">)</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span> job<span style="color: #339933;">-&gt;</span>i <span style="color: #339933;">=</span> i<span style="color: #339933;">;</span>
+    job<span style="color: #339933;">-&gt;</span>j <span style="color: #339933;">=</span> j<span style="color: #339933;">;</span>
+    job<span style="color: #339933;">-&gt;</span>next <span style="color: #339933;">=</span> NULL<span style="color: #339933;">;</span>
+    <span style="color: #b1b100;">if</span><span style="color: #009900;">(</span>pending_jobs <span style="color: #339933;">==</span> <span style="color: #0000dd;">0</span><span style="color: #009900;">)</span><span style="color: #009900;">{</span>
+        job_list <span style="color: #339933;">=</span> job<span style="color: #339933;">;</span>
+        last_job <span style="color: #339933;">=</span> job<span style="color: #339933;">;</span>
+    <span style="color: #009900;">}</span> 
+    <span style="color: #b1b100;">else</span><span style="color: #009900;">{</span>
+        last_job<span style="color: #339933;">-&gt;</span>next <span style="color: #339933;">=</span> job<span style="color: #339933;">;</span>
+        last_job <span style="color: #339933;">=</span> job<span style="color: #339933;">;</span>
+    <span style="color: #009900;">}</span>
+    pending_jobs<span style="color: #339933;">++;</span>
+<span style="color: #009900;">}</span>
+￼￼￼￼
+￼<span style="color: #993333;">struct</span> job<span style="color: #339933;">*</span> get_job<span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #009900;">{</span>
+    <span style="color: #993333;">struct</span> job <span style="color: #339933;">*</span>job <span style="color: #339933;">=</span> NULL<span style="color: #339933;">;</span>
+    <span style="color: #b1b100;">if</span><span style="color: #009900;">(</span>pending_jobs <span style="color: #339933;">&gt;</span> <span style="color: #0000dd;">0</span><span style="color: #009900;">)</span><span style="color: #009900;">{</span>
+        job <span style="color: #339933;">=</span> job_list<span style="color: #339933;">;</span>
+        job_list <span style="color: #339933;">=</span> job<span style="color: #339933;">-&gt;</span>next<span style="color: #339933;">;</span>
+        <span style="color: #b1b100;">if</span><span style="color: #009900;">(</span>job_list <span style="color: #339933;">==</span> NULL<span style="color: #009900;">)</span><span style="color: #009900;">{</span>
+            last_job <span style="color: #339933;">=</span> NULL<span style="color: #339933;">;</span>
+        <span style="color: #009900;">}</span>
+        pending_jobs<span style="color: #339933;">--;</span>
+    <span style="color: #009900;">}</span>
+    <span style="color: #b1b100;">return</span> job<span style="color: #339933;">;</span> 
+<span style="color: #009900;">}</span></pre></td></tr></tbody></table></div>
+
+<p>Each launched thread executes the <em>dispatch_job()</em> function, where a job is obtained from the list and its calculations are done:</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="c" style="font-family:monospace;"><span style="color: #993333;">void</span> do_job<span style="color: #009900;">(</span><span style="color: #993333;">struct</span> job <span style="color: #339933;">*</span>job<span style="color: #009900;">)</span> <span style="color: #009900;">{</span>
+    <span style="color: #993333;">int</span> k<span style="color: #339933;">,</span> acum<span style="color: #339933;">;</span>
+    acum <span style="color: #339933;">=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span>
+    <span style="color: #b1b100;">for</span> <span style="color: #009900;">(</span>k <span style="color: #339933;">=</span> <span style="color: #0000dd;">0</span><span style="color: #339933;">;</span> k <span style="color: #339933;">&lt;</span> matrix1_cols<span style="color: #339933;">;</span> k<span style="color: #339933;">++</span><span style="color: #009900;">)</span> <span style="color: #009900;">{</span>
+        acum <span style="color: #339933;">+=</span> matrix1<span style="color: #009900;">[</span>job<span style="color: #339933;">-&gt;</span>i<span style="color: #009900;">]</span><span style="color: #009900;">[</span>k<span style="color: #009900;">]</span> <span style="color: #339933;">*</span> matrix2<span style="color: #009900;">[</span>k<span style="color: #009900;">]</span><span style="color: #009900;">[</span>job<span style="color: #339933;">-&gt;</span>j<span style="color: #009900;">]</span><span style="color: #339933;">;</span>
+    <span style="color: #009900;">}</span>
+    matrixR<span style="color: #009900;">[</span>job<span style="color: #339933;">-&gt;</span>i<span style="color: #009900;">]</span><span style="color: #009900;">[</span>job<span style="color: #339933;">-&gt;</span>j<span style="color: #009900;">]</span> <span style="color: #339933;">=</span> acum<span style="color: #339933;">;</span>
+<span style="color: #009900;">}</span>
+&nbsp;
+<span style="color: #993333;">void</span><span style="color: #339933;">*</span> dispatch_job <span style="color: #009900;">(</span><span style="color: #009900;">)</span> <span style="color: #009900;">{</span>
+    <span style="color: #993333;">struct</span> job <span style="color: #339933;">*</span>job<span style="color: #339933;">;</span>
+    <span style="color: #b1b100;">while</span><span style="color: #009900;">(</span><span style="color: #0000dd;">1</span><span style="color: #009900;">)</span> <span style="color: #009900;">{</span>
+        pthread_mutex_lock<span style="color: #009900;">(</span><span style="color: #339933;">&amp;</span>mutex<span style="color: #009900;">)</span><span style="color: #339933;">;</span>
+        job <span style="color: #339933;">=</span> get_job<span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span>
+        pthread_mutex_unlock<span style="color: #009900;">(</span><span style="color: #339933;">&amp;</span>mutex<span style="color: #009900;">)</span><span style="color: #339933;">;</span>
+        <span style="color: #b1b100;">if</span> <span style="color: #009900;">(</span>job<span style="color: #009900;">)</span> <span style="color: #009900;">{</span>
+            do_job<span style="color: #009900;">(</span>job<span style="color: #009900;">)</span><span style="color: #339933;">;</span>
+            <span style="color: #000066;">free</span><span style="color: #009900;">(</span>job<span style="color: #009900;">)</span><span style="color: #339933;">;</span> 
+        <span style="color: #009900;">}</span>
+        <span style="color: #b1b100;">else</span> <span style="color: #009900;">{</span>
+            pthread_exit<span style="color: #009900;">(</span>NULL<span style="color: #009900;">)</span><span style="color: #339933;">;</span>
+        <span style="color: #009900;">}</span>
+    <span style="color: #009900;">}</span>
+<span style="color: #009900;">}</span></pre></td></tr></tbody></table></div>
+
+<p>And the main thread waits for all the threads to finish. Go version is slightly different. The <em>dispatch_job()</em> function is launched in a new goroutine (and will run in parallel if we have set the GOMAXPROCS to one or more processors). I have defined two different channels <em>ch</em> which will signal that a goroutine has ended, and <em>chm</em> which will give the goroutine exclusive access to the shared list.</p>
+<p>The<em> dispatch_job()</em> function is as follows:</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="c" style="font-family:monospace;">func dispatch_job<span style="color: #009900;">(</span><span style="color: #009900;">)</span> <span style="color: #009900;">{</span>
+    var job <span style="color: #339933;">*</span>struct_job
+&nbsp;
+    <span style="color: #b1b100;">for</span> <span style="color: #009900;">{</span>
+        chm <span style="color: #339933;">&lt;-</span> <span style="color: #0000dd;">1</span>
+        job <span style="color: #339933;">=</span> get_job<span style="color: #009900;">(</span><span style="color: #009900;">)</span>
+        <span style="color: #339933;">&lt;-</span> chm
+&nbsp;
+        <span style="color: #b1b100;">if</span> <span style="color: #009900;">(</span>job <span style="color: #339933;">!=</span> nil<span style="color: #009900;">)</span> <span style="color: #009900;">{</span>
+            do_job<span style="color: #009900;">(</span>job<span style="color: #009900;">)</span>
+        <span style="color: #009900;">}</span> <span style="color: #b1b100;">else</span> <span style="color: #009900;">{</span>
+            ch <span style="color: #339933;">&lt;-</span> <span style="color: #0000dd;">1</span>
+            runtime.<span style="color: #202020;">Goexit</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span>
+        <span style="color: #009900;">}</span>
+    <span style="color: #009900;">}</span>
+<span style="color: #009900;">}</span></pre></td></tr></tbody></table></div>
+
+<p>Now that we have analyzed the global structure of the code in both versions, let’s see how are time calculated and which are the final results. Each time has been taken by running the <em>make testX</em> command with the given makefiles for the X test (which runs the executable taking times with <a href="http://linux.about.com/library/cmd/blcmdl1_time.htm">time command</a>). Each time was taken 3 times to avoid high load of the server (which is a shared machine at the university), and the final taken time is the result of the formula: ((fastest time + slowest time) / 2 + middle time) / 2. </p>
+<p>With this formula we take into account margin values but getting near the two nearest values.</p>
+<p>So here are the times for each test, being the first figure the execution of the secuential versions, and the second one the parallelized one. Note that we don’t have unbounded threads (user level threads) in C because of Linux implementation. System stands for bounded threads (kernel level threads).</p>
+<ul>
+<li><strong>Test 1</strong></li>
+<p><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/secuential_test1.png" alt="" scale="0"><br>
+<img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/parallel_test1.png" alt="" scale="0"></p>
+<li><strong>Test 2</strong></li>
+<p><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/secuential_test2.png" alt="" scale="0"><br>
+<img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/parallel_test2.png" alt="" scale="0"></p>
+<li><strong>Test 3</strong></li>
+<p><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/secuential_test3.png" alt="" scale="0"><br>
+<img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/parallel_test3.png" alt="" scale="0">
+</p></ul>
+<p>There are some things to remark here:</p>
+<p>- Go version implementing the matrix as double-dimension arrays is very, very slow on test1. It gets better when the matrix are bigger.<br>
+- Single-dimension arrays are better than double-dimension arrays. This is logical because we have contiguous memory against non-contiguous memory. <strong>Go vector version is amazingly fast</strong>.<br>
+- Overall speedup is between 10-20% faster, being Go faster than C.</p>
+<p>Although this test is not very scientific and implementations can be improved, I think it makes a point where in some kind of applications and depending on the implementation Go is faster than C. Where it is not, it should improve in the next Go 1 stable version.</p>
+<p>I hope this post gets discussed and is able to gain new users in the Go community. Do not hesitate to fork the <a href="https://github.com/rcostu/Go-vs-C-Matrix-benchmark">GitHub repository</a> or leaving comment.</p>
+ <div class="wdgpo wdgpo_standard_count"><div style="height: 24px; width: 106px; display: inline-block; text-indent: 0px; margin: 0px; padding: 0px; background-color: transparent; border-style: none; float: none; line-height: normal; font-size: 1px; vertical-align: baseline; background-position: initial initial; background-repeat: initial initial;" id="___plusone_0"><iframe frameborder="0" hspace="0" marginheight="0" marginwidth="0" scrolling="no" style="position: static; top: 0px; width: 106px; margin: 0px; border-style: none; left: 0px; visibility: visible; height: 24px;" tabindex="0" vspace="0" width="100%" id="I0_1361395802599" name="I0_1361395802599" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/fastbutton.html" allowtransparency="true" data-gapiattached="true" title="+1"></iframe></div></div><div id="wp_fb_like_button" style="margin:5px 0;float:none;height:40px;"><script src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/all.js"></script><fb:like href="http%3A%2F%2Froberto.costumero.es%2Fen%2F2012%2F02%2F07%2Fgo-vs-c-benchmark-puede-ser-go-mas-rapido-que-c%2F" send="false" layout="standard" width="400" show_faces="false" font="arial" action="like" colorscheme="light" fb-xfbml-state="rendered" class="fb_edge_widget_with_comment fb_iframe_widget"><span style="height: 24px; width: 400px;"><iframe id="f1447f43e" name="f2a65ce8dc" scrolling="no" style="border: none; overflow: hidden; height: 24px; width: 400px;" title="Like this content on Facebook." class="fb_ltr" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/like.html"></iframe></span></fb:like></div><div style="float: left;"><iframe allowtransparency="true" frameborder="0" scrolling="no" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/tweet_button.1360972506.html" class="twitter-share-button twitter-count-horizontal" style="width: 107px; height: 20px;" title="Twitter Tweet Button" data-twttr-rendered="true"></iframe><script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/widgets.js"></script></div><div style="display:none;"><a href="http://government-politics.forum1000.com/">government,politics</a>&nbsp;<a href="http://news365live.com/">news,politics</a>&nbsp;<a href="http://worldnews365online.com/">news,politics</a></div>									<div class="clear"></div> 
+																</div>	
+							<div class="tags">
+								Tagged with: <a href="http://roberto.costumero.es/en/tag/c/" rel="tag">C</a> • <a href="http://roberto.costumero.es/en/tag/concurrencia/" rel="tag">Concurrency</a> • <a href="http://roberto.costumero.es/en/tag/go/" rel="tag">Go</a> • <a href="http://roberto.costumero.es/en/tag/golang/" rel="tag">Golang</a> • <a href="http://roberto.costumero.es/en/tag/paralelismo/" rel="tag">Parallelism</a> • <a href="http://roberto.costumero.es/en/tag/programacion/" rel="tag">Coding</a><br>&nbsp;
+							</div>
+						</div>
+								</div>
+
+	<div class="clear"></div>
+	</div>
+</div>
+<div id="sharebar" class="copy fix">
+	<div class="copy-pad">
+			<div class="post-footer">
+
+					<div class="left">
+						Si te ha gustado este artículo, ¡Compártelo!	
+					</div>
+					<div class="right">
+																					<a href="http://reddit.com/submit?phase=2&url=http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/&title=Go+vs+C+benchmark.+Could+Go+be+faster+than+C%3F" title="Share on Reddit" rel="nofollow" target="_blank"><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/ico-reddit.png" alt="Reddit" scale="0"></a>
+														
+															<a href="http://www.facebook.com/sharer.php?u=http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/&t=Go+vs+C+benchmark.+Could+Go+be+faster+than+C%3F" title="Share on Facebook" rel="nofollow" target="_blank"><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/ico-facebook.png" alt="Facebook" scale="0"></a>
+							 
+
+																							<a href="http://twitter.com/?status=Go%20vs%20C%20benchmark.%20Could%20Go%20be%20faster%20than%20C?%20-%20http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/" title="Share on Twitter" rel="nofollow" target="_blank"><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/ico-twitter.png" alt="Twitter" scale="0"></a>
+							 
+
+															<a href="http://del.icio.us/post?url=http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/&title=Go+vs+C+benchmark.+Could+Go+be+faster+than+C%3F" title="Share on Delicious" rel="nofollow" target="_blank"><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/ico-del.png" alt="Delicious" scale="0"></a>
+														
+														
+															<a href="http://www.stumbleupon.com/submit?url=http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/&title=Go+vs+C+benchmark.+Could+Go+be+faster+than+C%3F" title="Share on StumbleUpon" rel="nofollow" target="_blank"><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/ico-stumble.png" alt="StumbleUpon" scale="0"></a>
+														
+															<a href="http://digg.com/submit?phase=2&url=http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/&title=Go+vs+C+benchmark.+Could+Go+be+faster+than+C%3F" title="Share on Digg" rel="nofollow" target="_blank"><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/ico-digg.png" alt="Digg" scale="0"></a>
+												</div>
+				<div class="clear"></div>
+			</div>
+	
+	<div class="clear"></div>
+	</div>
+</div>
+<div id="pl_comments" class="copy fix">
+	<div class="copy-pad">
+<div id="social">
+		<div class="social-post">
+		<div id="loading" style="display:none">
+			<input type="hidden" id="reload_url" value="http://roberto.costumero.es/index.php?social_controller=auth&amp;social_action=reload_form&amp;redirect_to=http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/&amp;post_id=214">
+			Logging In...		</div>
+										<div id="respond">
+				<h3 id="reply-title"><span>Profile <small><a rel="nofollow" id="cancel-comment-reply-link" href="http://roberto.costumero.es/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/#respond" style="display:none;">cancel</a></small></span></h3>
+									<form action="http://roberto.costumero.es/wp-comments-post.php" method="post" id="commentform">
+						<div class="social-sign-in-links social-clearfix">
+		<a class="social-twitter social-imr social-login comments" href="http://roberto.costumero.es/index.php?social_controller=auth&social_action=authorize&key=twitter&post_id=214" id="twitter_signin" target="_blank">Sign in with Twitter</a>
+		<a class="social-facebook social-imr social-login comments" href="http://roberto.costumero.es/index.php?social_controller=auth&social_action=authorize&key=facebook&post_id=214" id="facebook_signin" target="_blank">Sign in with Facebook</a>
+	</div>
+<div class="social-divider">
+	<span>or</span>
+</div>
+																				<p class="social-input-row social-input-row-author"><label for="author" class="social-label">Name</label><input id="author" name="author" class="social-input" required="required" type="text" value=""></p>
+<p class="social-input-row social-input-row-email"><label for="email" class="social-label">Email</label><input id="email" name="email" class="social-input" required="required" type="text" value=""><small class="social-help">Not published</small></p>
+<p class="social-input-row social-input-row-url"><label for="url" class="social-label">Website</label><input id="url" name="url" class="social-input" type="text" value=""></p>
+												<p class="social-input-row social-input-row-comment"><label for="comment" class="social-label">Comment</label><textarea id="comment" name="comment" class="social-input" required="required"></textarea></p>												<p class="form-submit">
+							<input name="submit" type="submit" id="submit" value="Post It">
+							<input type="hidden" name="comment_post_ID" value="214" id="comment_post_ID">
+<input type="hidden" name="comment_parent" id="comment_parent" value="0">
+<input type="hidden" id="use_twitter_reply" name="use_twitter_reply" value="0"><input type="hidden" id="in_reply_to_status_id" name="in_reply_to_status_id" value="">						</p>
+						<div id="commentform-extras"><p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="152e01a7cc"></p><p class="comment-subscription-form"><input type="checkbox" name="subscribe_comments" id="subscribe_comments" value="subscribe" style="width: auto; -moz-appearance: checkbox; -webkit-appearance: checkbox;"> <label class="subscribe-label" id="subscribe-label" for="subscribe_comments" style="display: inline;">Notify me of follow-up comments by email.</label></p><p class="comment-subscription-form"><input type="checkbox" name="subscribe_blog" id="subscribe_blog" value="subscribe" style="width: auto; -moz-appearance: checkbox; -webkit-appearance: checkbox;"> <label class="subscribe-label" id="subscribe-blog-label" for="subscribe_blog" style="display: inline;">Notify me of new posts by email.</label></p></div>					</form>
+							</div><!-- #respond -->
+							</div>
+	<div id="social-tabs-comments">
+				<ul class="social-nav social-clearfix">
+			<li class="social-all social-tab-main social-current-tab"><a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/#" rel="social-all"><span>7 Replies</span></a></li>
+			<li class="social-wordpress"><a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/#" rel="wordpress"><span>5 Comments</span></a></li>
+			<li class="social-twitter"><a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/#" rel="social-twitter"><span>2 Tweets</span></a></li>
+			<li class="social-facebook"><a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/#" rel="social-facebook"><span>0 Facebook</span></a></li>
+			<li class="social-pingback"><a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/#" rel="social-pingback"><span>0 Pingbacks</span></a></li>
+		</ul>
+
+		<!-- panel items -->
+		<div id="social-comments-tab-all" class="social-tabs-panel social-tabs-first-panel">
+			<div id="comments" class="social-comments">
+				<div class="social-last-reply-when">Last reply was 8 months ago</div><div id="social-items-wrapper"><div class="social-items social-twitter">
+	<div class="social-items-icon"></div>
+	<div class="social-items-comments">
+		<a href="http://twitter.com/chernando/status/166981545276608513" title="chernando retweeted this"><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/2d7ca921-bc1d-4315-a622-70d2523887b8_normal.png" width="24" height="24" alt="chernando retweeted this" scale="0"></a><a href="http://twitter.com/ocubom/status/167319351144353793" title="ocubom retweeted this"><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/ocubom_normal.png" width="24" height="24" alt="ocubom retweeted this" scale="0"></a>	</div>
+</div>
+</div><div class="cf-clearfix"></div>				<ol class="social-commentlist">
+				<li class="wordpress even thread-even depth-1 social-comment social-clearfix social-wordpress" id="li-comment-164">
+<div class="social-comment-inner social-clearfix" id="comment-164">
+	<div class="social-comment-header">
+		<div class="social-comment-author vcard">
+			<img alt="" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/f6b6f4d56670d25a4ea9bf4743a364f5" class="avatar avatar-40 photo grav-hashed grav-hijack" height="40" width="40" id="grav-f6b6f4d56670d25a4ea9bf4743a364f5-0" originals="40" src-orig="http://1.gravatar.com/avatar/f6b6f4d56670d25a4ea9bf4743a364f5?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G" scale="1.5"><cite class="social-fn fn">r2p2</cite>		</div>
+		<!-- .comment-author .vcard -->
+		<div class="social-comment-meta social-comment-meta-wordpress">
+			<span class="social-posted-from">
+								<span>View</span>
+							</span>
+			<a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/comment-page-1/#comment-164" class="social-posted-when" target="_blank">%A %B %e%q, %Y</a>
+		</div>
+	</div>
+	<div class="social-comment-body">
+				<p>Hi, in you Makefile you compile with -g. I know that additional debug information is stored in the executable, does this have an negative effect on performance? Additional you could use -O3 for your c code. I tested it on my side and saw that the whole textX process only takes 0.067 seconds in total for C on my 3ghz single core (just ht). Still if I do this 3 times the result wold not be useful. (<a href="http://www.azulsystems.com/events/javaone_2002/microbenchmarks.pdf" rel="nofollow">http://www.azulsystems.com/events/javaone_2002/microbenchmarks.pdf</a>)</p>
+<p>Java once said (well not java itself =) ) that it would be faster than C++. Which was true until you use compiler optimization.</p>
+<p>Please correct me if I see something wrong.</p>
+<p>PS: I like go.</p>
+	</div>
+			<div class="social-actions entry-meta">
+		<a class="comment-reply-link" href="http://roberto.costumero.es/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/?replytocom=164#respond" onclick="return addComment.moveForm(&quot;comment-164&quot;, &quot;164&quot;, &quot;respond&quot;, &quot;214&quot;)">Reply</a>	</div>
+		<!-- .reply -->
+</div><!-- #comment-164 -->
+<ul class="social-children">
+<li class="wordpress byuser comment-author-roberto bypostauthor odd alt depth-2 social-comment social-clearfix social-wordpress" id="li-comment-165">
+<div class="social-comment-inner social-clearfix" id="comment-165">
+	<div class="social-comment-header">
+		<div class="social-comment-author vcard">
+			<img alt="" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/f6186be0075b3059176ed6bf0783cbb5" class="avatar avatar-40 photo grav-hashed grav-hijack" height="40" width="40" id="grav-f6186be0075b3059176ed6bf0783cbb5-0" originals="40" src-orig="http://1.gravatar.com/avatar/f6186be0075b3059176ed6bf0783cbb5?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G" scale="1.5"><cite class="social-fn fn"><a href="http://roberto.costumero.es/" rel="external nofollow" class="url">Roberto</a></cite><span class="social-replied social-imr">replied:</span>		</div>
+		<!-- .comment-author .vcard -->
+		<div class="social-comment-meta social-comment-meta-wordpress">
+			<span class="social-posted-from">
+								<span>View</span>
+							</span>
+			<a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/comment-page-1/#comment-165" class="social-posted-when" target="_blank">%A %B %e%q, %Y</a>
+		</div>
+	</div>
+	<div class="social-comment-body">
+				<p>Hi,</p>
+<p>Thanks for your comment. As far as I know additional debug included by compiling with -g  does not affects performance but increases the executable size. If you see the next post <a href="http://roberto.costumero.es/en/2012/02/10/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c-parte-ii/" title="Go vs C benchmark. Could Go be faster than C? (part II)" rel="nofollow"></a> I re-run all the tests compiling with -O2 to be fair with C comparing to Go compilation system. You can check it and see how times have changed quite a lot.</p>
+<p>Running the tests 3 times was due to high loads in the machine, to avoid other processes interfere in the actual results as it is a shared machine with lots of people executing at the same time and with no control over queue planification.</p>
+<p>Thanks for the link. Every benchmark has a little lie on it as there’s no such thing as equal performance due to a lot of factors to take into account.</p>
+<p>Check the second part of my post and if you want we can discuss the new results. And if you like Go I suggest you to follow the official go-nuts mailing list if you do not yet!</p>
+	</div>
+			<div class="social-actions entry-meta">
+		<a class="comment-reply-link" href="http://roberto.costumero.es/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/?replytocom=165#respond" onclick="return addComment.moveForm(&quot;comment-165&quot;, &quot;165&quot;, &quot;respond&quot;, &quot;214&quot;)">Reply</a>	</div>
+		<!-- .reply -->
+</div><!-- #comment-165 -->
+<ul class="social-children">
+<li class="wordpress even depth-3 social-comment social-clearfix social-wordpress" id="li-comment-166">
+<div class="social-comment-inner social-clearfix" id="comment-166">
+	<div class="social-comment-header">
+		<div class="social-comment-author vcard">
+			<img alt="" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/f6b6f4d56670d25a4ea9bf4743a364f5" class="avatar avatar-40 photo grav-hashed grav-hijack" height="40" width="40" id="grav-f6b6f4d56670d25a4ea9bf4743a364f5-1" originals="40" src-orig="http://1.gravatar.com/avatar/f6b6f4d56670d25a4ea9bf4743a364f5?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G" scale="1.5"><cite class="social-fn fn">r2p2</cite><span class="social-replied social-imr">replied:</span>		</div>
+		<!-- .comment-author .vcard -->
+		<div class="social-comment-meta social-comment-meta-wordpress">
+			<span class="social-posted-from">
+								<span>View</span>
+							</span>
+			<a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/comment-page-1/#comment-166" class="social-posted-when" target="_blank">%A %B %e%q, %Y</a>
+		</div>
+	</div>
+	<div class="social-comment-body">
+				<p>I had this “old” link from G+. Seems like I missed the mailing list post. =)</p>
+	</div>
+			<div class="social-actions entry-meta">
+		<a class="comment-reply-link" href="http://roberto.costumero.es/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/?replytocom=166#respond" onclick="return addComment.moveForm(&quot;comment-166&quot;, &quot;166&quot;, &quot;respond&quot;, &quot;214&quot;)">Reply</a>	</div>
+		<!-- .reply -->
+</div><!-- #comment-166 -->
+</li>
+</ul>
+</li>
+
+</ul>
+</li>
+
+<li class="wordpress byuser comment-author-facebook_shaban_naasso-100002492533458 odd alt thread-odd thread-alt depth-1 social-comment social-clearfix social-wordpress" id="li-comment-330">
+<div class="social-comment-inner social-clearfix" id="comment-330">
+	<div class="social-comment-header">
+		<div class="social-comment-author vcard">
+			<img alt="" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/picture" class="avatar avatar-40 photo wordpress" height="40" width="40" scale="0"><cite class="social-fn fn"><a href="http://facebook.com/profile.php?id=100002492533458" rel="external nofollow" class="url">Shaban Naasso</a></cite>		</div>
+		<!-- .comment-author .vcard -->
+		<div class="social-comment-meta social-comment-meta-wordpress">
+			<span class="social-posted-from">
+								<span>View</span>
+							</span>
+			<a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/comment-page-1/#comment-330" class="social-posted-when" target="_blank">10 months ago</a>
+		</div>
+	</div>
+	<div class="social-comment-body">
+				<p>hello Roberto,</p>
+<p>the vector library has been made obsolete.<br>
+it is no longer part of Go1<br>
+there is something similar as a “builtin” version in go.</p>
+<p>so if you try something like this (not complete listing just general idea)</p>
+<p>type row struct {<br>
+	line []int<br>
+}</p>
+<p>matrix1 := make(row, matrix1_rows)<br>
+for i, _ := range matrix1 {<br>
+	matrix1[i].line = make([]int, matrix1_cols)<br>
+}</p>
+<p>then you can use slicing.<br>
+you see that i range over the matrix.<br>
+i don’t know if it’s faster but shouldn’t be slower than<br>
+a for loop and shows some syntactic sugar.</p>
+<p>on slices:<br>
+to append a row to the matrix you could for example do following<br>
+matrix1= append(matrix1, somerow)</p>
+<p>not sure if this is a faster mnethod but i think the cool stuff about Go is that you can express yourselves very concise and get an easily readable sourcecode.</p>
+<p>thanx for the cool post and i wish you good times <img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/icon_smile.gif" alt=":)" class="wp-smiley" scale="0"> </p>
+	</div>
+			<div class="social-actions entry-meta">
+		<a class="comment-reply-link" href="http://roberto.costumero.es/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/?replytocom=330#respond" onclick="return addComment.moveForm(&quot;comment-330&quot;, &quot;330&quot;, &quot;respond&quot;, &quot;214&quot;)">Reply</a>	</div>
+		<!-- .reply -->
+</div><!-- #comment-330 -->
+</li>
+<li class="wordpress even thread-even depth-1 social-comment social-clearfix social-wordpress" id="li-comment-508">
+<div class="social-comment-inner social-clearfix" id="comment-508">
+	<div class="social-comment-header">
+		<div class="social-comment-author vcard">
+			<img alt="" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/1c9092462960cf7646633d029469ba24" class="avatar avatar-40 photo grav-hashed grav-hijack" height="40" width="40" id="grav-1c9092462960cf7646633d029469ba24-0" originals="40" src-orig="http://1.gravatar.com/avatar/1c9092462960cf7646633d029469ba24?s=40&amp;d=http%3A%2F%2F1.gravatar.com%2Favatar%2Fad516503a11cd5ca435acc9bb6523536%3Fs%3D40&amp;r=G" scale="1.5"><cite class="social-fn fn">Craig</cite>		</div>
+		<!-- .comment-author .vcard -->
+		<div class="social-comment-meta social-comment-meta-wordpress">
+			<span class="social-posted-from">
+								<span>View</span>
+							</span>
+			<a href="http://roberto.costumero.es/en/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/comment-page-1/#comment-508" class="social-posted-when" target="_blank">8 months ago</a>
+		</div>
+	</div>
+	<div class="social-comment-body">
+				<p>Yes, you can implement a program in Go and have it perform faster C but that proves entirely nothing. The Go authors themselves still use C for many tasks — including the task of writing the Go compiler.</p>
+<p>There’s always a program-specific optimisation that can be done in C that can’t be done in Go. So no, Go can never be “faster than C” in the perfect case. However, most people neither care enough nor know how, so that’s not really the point – but absolute speed isn’t the point of Go either.</p>
+<p>I don’t think you’re going to see any OS kernels being written in Go any time soon, except as toys.</p>
+	</div>
+			<div class="social-actions entry-meta">
+		<a class="comment-reply-link" href="http://roberto.costumero.es/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/?replytocom=508#respond" onclick="return addComment.moveForm(&quot;comment-508&quot;, &quot;508&quot;, &quot;respond&quot;, &quot;214&quot;)">Reply</a>	</div>
+		<!-- .reply -->
+</div><!-- #comment-508 -->
+</li>
+				</ol>
+							</div>
+		</div>
+			</div>
+	<!-- #Comments Tabs -->
+	</div>
+	<div class="clear"></div>
+	</div>
+</div>
+<div id="pagination" class="copy fix">
+	<div class="copy-pad">
+				
+		<div class="clear"></div>
+	</div>
+</div>
+			</div>
+		</div>
+		
+				
+	</div>	
+	
+	
+	<div id="sidebar-wrap" class="fix">
+			<div id="sidebar1" class="scolumn fix">
+				<div class="scolumn-pad">
+					<div id="sidebar_primary" class="copy fix">
+	<div class="copy-pad">
+	<ul id="list_sidebar_primary" class="sidebar_widgets fix">
+		<li id="qtranslate-2" class="widget_qtranslate widget fix"><div class="widget-pad"><h3 class="widget-title">Language</h3><ul class="qtrans_language_chooser" id="qtranslate-2-chooser"><li><a href="http://roberto.costumero.es/2012/02/07/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c/" class="qtrans_flag_es qtrans_flag_and_text" title="Español"><span>Español</span></a></li><li class="active"><a href="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo.html" class="qtrans_flag_en qtrans_flag_and_text" title="English"><span>English</span></a></li></ul><div class="qtrans_widget_end"></div></div></li><li id="twitter-1" class="widget_twitter widget fix"><div class="widget-pad"><h3 class="widget-title"><a href="http://twitter.com/rcostu" class="twitter_title_link">Tweets</a></h3><ul class="twitter"><li>No public Twitter messages.</li></ul></div></li><li id="tag_cloud-3" class="widget_tag_cloud widget fix"><div class="widget-pad"><h3 class="widget-title">Nube de etiquetas</h3><div class="tagcloud"><a href="http://roberto.costumero.es/en/tag/apple/" class="tag-link-17" title="1 topic" style="font-size: 8pt;">Apple</a>
+<a href="http://roberto.costumero.es/en/tag/bluetooth/" class="tag-link-19" title="1 topic" style="font-size: 8pt;">Bluetooth</a>
+<a href="http://roberto.costumero.es/en/tag/c/" class="tag-link-5" title="2 topics" style="font-size: 14.3pt;">C</a>
+<a href="http://roberto.costumero.es/en/tag/programacion/" class="tag-link-25" title="3 topics" style="font-size: 18.5pt;">Coding</a>
+<a href="http://roberto.costumero.es/en/tag/concurrencia/" class="tag-link-27" title="3 topics" style="font-size: 18.5pt;">Concurrency</a>
+<a href="http://roberto.costumero.es/en/tag/go/" class="tag-link-13" title="4 topics" style="font-size: 22pt;">Go</a>
+<a href="http://roberto.costumero.es/en/tag/golang/" class="tag-link-23" title="3 topics" style="font-size: 18.5pt;">Golang</a>
+<a href="http://roberto.costumero.es/en/tag/google/" class="tag-link-22" title="1 topic" style="font-size: 8pt;">Google</a>
+<a href="http://roberto.costumero.es/en/tag/macbook/" class="tag-link-18" title="1 topic" style="font-size: 8pt;">Macbook</a>
+<a href="http://roberto.costumero.es/en/tag/mac-os-x/" class="tag-link-21" title="1 topic" style="font-size: 8pt;">Mac OS X</a>
+<a href="http://roberto.costumero.es/en/tag/paralelismo/" class="tag-link-28" title="3 topics" style="font-size: 18.5pt;">Parallelism</a>
+<a href="http://roberto.costumero.es/en/tag/php/" class="tag-link-15" title="3 topics" style="font-size: 18.5pt;">PHP</a>
+<a href="http://roberto.costumero.es/en/tag/pram/" class="tag-link-20" title="1 topic" style="font-size: 8pt;">PRAM</a>
+<a href="http://roberto.costumero.es/en/tag/especializacion/" class="tag-link-26" title="1 topic" style="font-size: 8pt;">Specialization</a>
+<a href="http://roberto.costumero.es/en/tag/symfony2/" class="tag-link-16" title="3 topics" style="font-size: 18.5pt;">Symfony2</a>
+<a href="http://roberto.costumero.es/en/tag/bienvenida/" class="tag-link-9" title="2 topics" style="font-size: 14.3pt;">Welcome</a></div>
+</div></li><li id="linkcat-3" class="widget_links widget fix"><div class="widget-pad"><h3 class="widget-title">Social Networks</h3>
+	<ul class="xoxo blogroll">
+<li><a href="http://es-es.facebook.com/rcostu" rel="me" target="_blank">Facebook</a></li>
+<li><a href="http://github.com/rcostu" title="GitHub account" target="_blank">GitHub</a></li>
+<li><a href="https://plus.google.com/105756272511700577473" rel="me" title="Perfil de Google+">Google+</a></li>
+<li><a href="http://www.lastfm.es/user/rcostu" rel="me">Last FM</a></li>
+<li><a href="http://es.linkedin.com/in/rcostu" rel="me" title="Perfil de LinkedIn">LinkedIn</a></li>
+<li><a href="http://www.slideshare.net/rcostu">SlideShare</a></li>
+<li><a href="http://www.twitter.com/rcostu" rel="me" target="_blank">Twitter</a></li>
+
+	</ul>
+</div></li>
+<li id="linkcat-14" class="widget_links widget fix"><div class="widget-pad"><h3 class="widget-title">Blogs I recommend</h3>
+	<ul class="xoxo blogroll">
+<li><a href="http://dl.dropbox.com/u/5907976/web/index.html">Ajaragoneses</a></li>
+<li><a href="http://www.bloqmayus.com/">BloqMayus</a></li>
+<li><a href="http://dev-linux.blogspot.com/">Dev Linux</a></li>
+<li><a href="http://elgritodeltiempo.blogspot.com/">El grito del tiempo</a></li>
+<li><a href="http://falsirego-en-cuentros.blogspot.com/">Falsirego-en-cuentros</a></li>
+<li><a href="http://blog.chernando.eu/">Soldat's log</a></li>
+<li><a href="http://sysvar.net/">Sysvar</a></li>
+
+	</ul>
+</div></li>
+	</ul>
+	<div class="clear"></div>
+	</div>
+</div>
+	
+				</div>
+			</div>
+			</div>		
+
+</div>				<div class="clear"></div>
+			</div>
+		</div>
+	</div>
+</div>
+</div> <!-- END #dynamic-content -->
+
+<div id="morefoot_area"><div id="morefoot" class="container fix">
+	<div class="texture">
+		<div class="content">
+			<div class="content-pad">
+								<div class="clear"></div>
+			</div>
+		</div>
+	</div>
+</div>
+<div id="twitterbar" class="container fix">
+	<div class="texture">
+		<div class="content">
+			<div class="content-pad">
+<div class="tbubble">
+			Set your Twitter account name in your settings to use the TwitterBar Section.</div>				<div class="clear"></div>
+			</div>
+		</div>
+	</div>
+</div>
+</div>
+<div class="clear"></div>
+				
+</div> <!-- END #page-main from header -->
+</div> <!-- END #page-canvas from header -->
+</div> <!-- END #page from header -->
+
+<div id="footer">
+	<div class="outline fix"><div id="footcols" class="container fix">
+	<div class="texture">
+		<div class="content">
+			<div class="content-pad">
+			<div id="fcolumns_container" class="dcol_container_5 fix">
+				
+									<div class="dcol_5 dcol">
+						<div class="dcol-pad">
+															<h3 class="site-title">
+									<a class="home" href="http://roberto.costumero.es/" title="Home">
+										Desarrollando y emprendiendo									</a>
+								</h3>
+													</div>
+					</div>
+					<div class="dcol_5 dcol">
+						<div class="dcol-pad">
+							<h3 class="widget-title">Pages</h3>
+								<div class="footer-links list-links"><ul><li class="page_item page-item-2"><a href="http://roberto.costumero.es/en/acerca-de/">About</a></li><li class="page_item page-item-32"><a href="http://roberto.costumero.es/en/manuales/">Manuals</a></li><li class="page_item page-item-55"><a href="http://roberto.costumero.es/en/menciones/">Mentions</a></li><li class="page_item page-item-34"><a href="http://roberto.costumero.es/en/proyectos/">Projects</a></li><li class="page_item page-item-30"><a href="http://roberto.costumero.es/en/transparencias/">Slides</a></li></ul></div>
+
+						</div>
+					</div>
+					<div class="dcol_5 dcol">
+						<div class="dcol-pad">
+							<h3 class="widget-title">The Latest</h3>
+								<ul class="latest_posts">
+																		<li class="list-item fix">
+											<div class="list_item_text">
+												<h5><a class="list_text_link" href="http://roberto.costumero.es/en/2012/02/10/go-vs-c-benchmark-puede-ser-go-mas-rapido-que-c-parte-ii/"><span class="list-title"><!--:es-->Go vs C benchmark. ¿Puede ser Go más rápido que C? (parte II)<!--:--><!--:en-->Go vs C benchmark. Could Go be faster than C? (part II)<!--:--></span></a></h5>
+												<div class="list-excerpt">As I expected there has been some check done by the Go&nbsp;[…]</div>
+											</div>
+										</li>
+								</ul>
+						</div>
+					</div>
+					<div class="dcol_5 dcol">
+						<div class="dcol-pad">
+							<h3 class="widget-title">More</h3>
+							<div class="findent footer-more">
+								Thanks for visiting! Do you want to follow the blog? Subscribe to the <a href="http://roberto.costumero.es/en/feed/">RSS feed!</a>.							</div>
+						</div>
+					</div>
+					<div class="dcol_5 dcol">
+						<div class="dcol-pad">
+							<div class="findent terms">
+								The content in this website is copyrighted except where noted otherwise.
+<br><br>
+© 2011 Roberto Costumero Moreno							</div>
+						</div>
+					</div>
+							</div>	
+			<div class="clear"></div>
+						<div class="clear"></div>
+			</div>
+		</div>
+	</div>
+</div>
+<div id="cred" class="pagelines"><a class="plimage" target="_blank" href="http://www.pagelines.com/" title="PageLines"><img src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/pagelines.png" alt="Platform by PageLines" scale="0"></a></div><div class="clear"></div></div>
+</div>
+</div><div id="fb-root" class=" fb_reset"><div style="position: absolute; top: -10000px; height: 0px; width: 0px;"><div><iframe name="fb_xdm_frame_http" frameborder="0" allowtransparency="true" scrolling="no" aria-hidden="true" title="Facebook Cross Domain Communication Frame" tab-index="-1" style="border: none;" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/xd_arbiter.html"></iframe><iframe name="fb_xdm_frame_https" frameborder="0" allowtransparency="true" scrolling="no" aria-hidden="true" title="Facebook Cross Domain Communication Frame" tab-index="-1" style="border: none;" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/xd_arbiter(1).html"></iframe></div></div><div style="position: absolute; top: -10000px; height: 0px; width: 0px;"><div></div></div></div>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-25232681-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>	<div style="display:none">
+	</div>
+<script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/plusone.js" gapi_processed="true">{lang: "es"}</script><script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/superfish.js"></script>
+<script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/plusone.js" gapi_processed="true">{lang: "es"}</script><script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/jquery.bgiframe.min.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var Sociali18n = {"commentReplyTitle":"Post a Reply"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/social.js"></script>
+<script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/devicepx-jetpack.js"></script>
+<script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/gprofiles.js"></script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var WPGroHo = {"my_hash":""};
+/* ]]> */
+</script>
+<script type="text/javascript" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/wpgroho.js"></script>
+
+	<script src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/e-201308.js" type="text/javascript"></script>
+	<script type="text/javascript">
+	st_go({v:'ext',j:'1:2.0.4',blog:'26012739',post:'214',tz:'1'});
+	var load_cmc = function(){linktracker_init(26012739,214,2);};
+	if ( typeof addLoadEvent != 'undefined' ) addLoadEvent(load_cmc);
+	else load_cmc();
+	</script><img id="wpstats" src="./Go vs C benchmark. Could Go be faster than C    Desarrollando y emprendiendo_files/g.gif" alt="">
+</body></html>
