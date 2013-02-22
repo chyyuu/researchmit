@@ -1,6 +1,8 @@
 my idea
 
 
+
+
 ----------------------
 how os support support new lang, such as lang?
 ----------------------
@@ -19,6 +21,20 @@ OS kernel can use goroutine and channel?
 Should vm/sched/fs subsystem support goroutine and channel? 
 
 
+----------------
+thread is  forkt(base + stack_size, (void*) start, arg, FORK_SHARE_VMAP | FORK_SHARE_FD)
+
+
+kalloc.cc have the Physical page allocator and Slab allocator
+
+
+** mpboot
+void
+mpboot(void)
+{
+  initseg(&cpus[bcpuid]);
+  inittls(&cpus[bcpuid]);       // Requires initseg
+  initpg();
 -----------------------
 
 sck
@@ -62,6 +78,8 @@ vmdesc in vm.hh
 struct vmdesc : public mmu::tracker
 
 page_holder ???
+
+
 
 some important comments in git
 -----
@@ -478,4 +496,16 @@ C++11
 http://zh.wikipedia.org/wiki/C%2B%2B11	
 
 C++11中值得关注的几大变化
-http://blog.csdn.net/lanphaday/article/details/6564162
+http://blog.csdn.net/lanphaday/article/6564162/details
+
+CODEX codex.hh
+----------------
+Transactional Synchronization in Haswell
+http://software.intel.com/en-us/blogs/2012/02/07/transactional-synchronization-in-haswell/
+
+
+
+Problem:
+1 meaning of class steal_order in kalloc.cc
+2 meaning of gc  in gc.cc
+3 content of lb.hh ( balance_pool  used in sched.cc) rnd.hh  AND sched using steal mechanism or some balance struct?

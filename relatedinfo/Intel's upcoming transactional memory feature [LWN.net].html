@@ -1,0 +1,756 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0031)http://lwn.net/Articles/480018/ -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Intel's upcoming transactional memory feature [LWN.net]</title>
+        
+        <link rel="icon" href="http://lwn.net/images/favicon.png" type="image/png">
+        <link rel="alternate" type="application/rss+xml" title="LWN.net headlines" href="http://lwn.net/headlines/newrss">
+<link rel="alternate" type="application/rss+xml" title="Comments posted to this article" href="http://lwn.net/headlines/480018/">
+        <link rel="stylesheet" href="http://lwn.net/CSS/lwn">
+<link rel="stylesheet" href="http://lwn.net/CSS/nosub">
+
+        
+<script type="text/javascript" async="" src="./Intel's upcoming transactional memory feature [LWN.net]_files/ados"></script><script type="text/javascript" async="" src="./Intel's upcoming transactional memory feature [LWN.net]_files/ados.js"></script><script type="text/javascript">var p="http",d="static";if(document.location.protocol=="https:"){p+="s";d="engine";}var z=document.createElement("script");z.type="text/javascript";z.async=true;z.src=p+"://"+d+".adzerk.net/ados.js";var s=document.getElementsByTagName("script")[0];s.parentNode.insertBefore(z,s);</script>
+<script type="text/javascript">
+var ados_keywords = ados_keywords || [];
+if( location.protocol=='https:' ) {
+        ados_keywords.push('T:SSL');
+} else {
+        ados_keywords.push('T:HTTP');
+}
+
+var ados = ados || {};
+ados.run = ados.run || [];
+ados.run.push(function() {
+
+ados_add_placement(4669, 20979, "azk13321_leaderboard", 4).setZone(16026);
+
+ados_add_placement(4669, 20979, "azk93271_right_zone", [5,10,6]).setZone(16027);
+
+ados_setKeywords(ados_keywords.join(', ')); 
+ados_load();
+});</script>
+
+        </head>
+        <body bgcolor="#ffffff" link="Blue" vlink="Green" alink="Green">
+        <table class="Page">
+<tbody><tr>
+<td class="LeftColumn">
+
+        <center>
+        <a href="http://lwn.net/"><img src="./Intel's upcoming transactional memory feature [LWN.net]_files/lcorner.png" width="153" height="120" border="0" alt="LWN.net Logo"></a>
+        </center>
+        <p>
+        <script type="text/javascript"><!--
+google_ad_client = "pub-4358676377058562";
+google_ad_width = 160;
+google_ad_height = 90;
+google_ad_format = "160x90_0ads_al";
+//2007-06-11: LWN Default
+google_ad_channel = "9054449711";
+google_color_border = "FFCC99";
+google_color_bg = "FFCC99";
+google_color_link = "0000FF";
+google_color_text = "000000";
+google_color_url = "008000";
+//-->
+</script>
+<script type="text/javascript" src="./Intel's upcoming transactional memory feature [LWN.net]_files/show_ads.js">
+</script><ins style="display:inline-table;border:none;height:90px;margin:0;padding:0;position:relative;visibility:visible;width:160px"><ins id="aswift_0_anchor" style="display:block;border:none;height:90px;margin:0;padding:0;position:relative;visibility:visible;width:160px"><iframe width="160" height="90" frameborder="0" marginwidth="0" marginheight="0" vspace="0" hspace="0" allowtransparency="true" scrolling="no" onload="var i=this.id,s=window.google_iframe_oncopy,H=s&amp;&amp;s.handlers,h=H&amp;&amp;H[i],w=this.contentWindow,d;try{d=w.document}catch(e){}if(h&amp;&amp;d&amp;&amp;(!d.body||!d.body.firstChild)){if(h.call){setTimeout(h,0)}else if(h.match){w.location.replace(h)}}" id="aswift_0" name="aswift_0" style="left:0;position:absolute;top:0;"></iframe></ins></ins>
+</p><p>
+</p><div class="SideBox">
+<p class="Header">Not logged in</p>
+<p><a href="http://lwn.net/login">Log in now</a></p><p>
+                                 </p><p><a href="http://lwn.net/newaccount">Create an account</a></p><p>
+                                 </p><p><a href="http://lwn.net/subscribe/Info">Subscribe to LWN</a></p></div>
+
+<div class="SideBox">
+<p class="Header">Weekly Edition</p>
+Return to the <a href="http://lwn.net/Articles/479074/">Kernel page</a></div>
+
+<div class="SideBox">
+<p class="Header">Recent Features</p>
+<p><a href="http://lwn.net/Articles/538098/">LWN.net Weekly Edition for February 21, 2013</a></p>
+            	<p><a href="http://lwn.net/Articles/538849/">ABS: Android in space</a></p>
+            	<p><a href="http://lwn.net/Articles/538898/">A story of three kernel vulnerabilities</a></p>
+            	<p><a href="http://lwn.net/Articles/536765/">LWN.net Weekly Edition for February 14, 2013</a></p>
+            	<p><a href="http://lwn.net/Articles/536862/">LCA: The ways of Wayland</a></p>
+            	</div>
+
+<div class="SideBox">
+<a href="http://lwn.net/Articles/480018/?format=printable" rel="nofollow">Printable page</a>
+</div>
+
+</td><!-- LC -->
+
+<td><table><tbody><tr>
+<td class="MidColumn">
+           <table class="TopNavigation">
+
+<!-- First row - content links -->
+<tbody><tr>
+  <td class="NavLink"><a href="http://lwn.net/current/">Weekly edition</a></td>
+  <td class="NavLink">
+	<a href="http://lwn.net/Kernel/">Kernel</a></td>
+  <td class="NavLink"><a href="http://lwn.net/Security/">Security</a></td>
+  <td class="NavLink">
+	<a href="http://lwn.net/Distributions/">Distributions</a></td>
+  <td class="NavLink"><a href="http://lwn.net/op/FAQ.lwn#contact">Contact Us</a> </td>
+  <td class="NavLink"><a href="http://lwn.net/Search/">Search</a> </td>
+</tr>
+<!-- Second row: navigation links -->
+<tr>
+  <td class="NavLink"><a href="http://lwn.net/Archives/">Archives</a></td>
+  <td class="NavLink"><a href="http://lwn.net/Calendar/">Calendar</a></td>
+  <td class="NavLink"><a href="http://lwn.net/subscribe/Info">Subscribe</a></td>
+  <td class="NavLink"><a href="http://lwn.net/op/AuthorGuide.lwn">Write for LWN</a></td>
+  <td class="NavLink"><a href="http://lwn.net/op/FAQ.lwn">LWN.net FAQ</a></td>
+  <td class="NavLink"><a href="http://lwn.net/op/Sponsors.lwn">Sponsors</a></td>
+</tr>
+
+</tbody></table>
+</td><td></td></tr>
+<tr><td colspan="2" class="MCTopBanner">
+<div id="azk13321_leaderboard"><a href="http://engine.adzerk.net/r?e=eyJ0cyI6MTM2MTQ4NDY1OTc1MCwiYXYiOjEzNTMxLCJhdCI6NCwiY20iOjE5OTg2LCJjaCI6NzMxOSwiY3IiOjUyMjQ0LCJkbSI6MSwiZmMiOjc0NTY3LCJmbCI6MzgxMjAsImt3IjoiVDpIVFRQIiwibnciOjQ2NjksInJmIjoiaHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS8iLCJydiI6MCwicHIiOjE3NjI0LCJzdCI6MjA5NzksInpuIjoxNjAyNiwiZGkiOiI2YzIyOTA5MTVjNmM0MGUwYjNiNDI5OTNhZDE1ZDkzOSIsInVyIjoiaHR0cDovL3d3dy5jYWZlcHJlc3MuY29tL0xXTl9uZXQifQ&s=86aNL7B-DVPKcqH2wq8DsPKi7EM" rel="nofollow" target="_blank" title=""><img src="./Intel's upcoming transactional memory feature [LWN.net]_files/26819eb293674fe2ae21d8f5e381d522.png" title="" alt="" border="0" width="728" height="90"></a><img height="0px" width="0px" src="./Intel's upcoming transactional memory feature [LWN.net]_files/i.gif"></div></td></tr><tr><td class="MidColumn">
+<div class="PageHeadline">
+<h1>Intel's upcoming transactional memory feature</h1>
+<div class="Byline">[Posted February 8, 2012 by corbet]
+               <p>
+               </p></div>
+</div>
+<div class="ArticleText">
+Here is <a href="http://software.intel.com/en-us/blogs/2012/02/07/transactional-synchronization-in-haswell/">a
+posting on the Intel software network</a> describing the "transactional
+synchronization extensions" feature to be found in the future "Haswell"
+processor.  
+<p>
+</p><div class="BigQuote">
+With transactional synchronization, the hardware can
+determine dynamically whether threads need to serialize through
+lock-protected critical sections, and perform serialization only when
+required. This lets the processor expose and exploit concurrency that would
+otherwise be hidden due to dynamically unnecessary synchronization.  At the
+lowest level with Intel TSX, programmer-specified code regions (also
+referred to as transactional regions) are executed transactionally. If the
+transactional execution completes successfully, then all memory operations
+performed within the transactional region will appear to have occurred
+instantaneously when viewed from other logical processors. A processor
+makes architectural updates performed within the region visible to other
+logical processors only on a successful commit, a process referred to as an
+atomic commit.
+</div>
+<p>
+Needless to say, there should be interesting ways to use such a feature in
+the kernel if it works well, but other projects (PyPy, for example) have
+also expressed interest in transactional memory.</p><hr width="60%" align="left">
+           (<a href="https://lwn.net/login?target=/Articles/480018/">Log in</a> to post comments)
+           <p>
+           
+</p></div> <!-- ArticleText -->
+<p><a name="Comments"></a>
+
+<a name="CommAnchor480123"></a>
+</p><div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 8, 2012 21:13 UTC (Wed) by <b>landley</b> (guest, #6789)
+       [<a href="http://lwn.net/Articles/480123/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+Huh, at a wild guess you batch all your cache line read/writes and then only post them if none of those cachelines has changed since you read them.<br>
+<p>
+Clever.  I wonder when the patent expires?<br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480123/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+
+<a name="CommAnchor480132"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 8, 2012 21:50 UTC (Wed) by <b>josh</b> (subscriber, #17465)
+       [<a href="http://lwn.net/Articles/480132/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+The explicit transaction mechanism (RTM) looks interesting, but Hardware Lock Elision (HLE) looks much more immediately useful.  It provides a pair of instruction prefixes to apply to the instructions which acquire and release a lock variable.  The processor can then try to perform all the memory operations within that lock as a single atomic operation, and if so it will not bother touching the lock variable at all, removing contention.  Best of all, those instruction prefixes don't require the HLE feature; on older CPUs they'll just make the instruction encoding slightly longer with no other effect.  (The HLE prefixes correspond to the repe/repne prefixes used with string instructions, which have no effect on the non-string instructions commonly used for lock operations.)<br>
+</div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480132/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor480298"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 9, 2012 17:53 UTC (Thu) by <b>kjp</b> (subscriber, #39639)
+       [<a href="http://lwn.net/Articles/480298/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+Yeah.  This post explains the big picture a lot better.<br>
+<a href="http://software.intel.com/en-us/blogs/2012/02/07/coarse-grained-locks-and-transactional-synchronization-explained/">http://software.intel.com/en-us/blogs/2012/02/07/coarse-g...</a><br>
+<p>
+HLE looks pretty cool, just wondering how large a 'transaction' can be in practice.  If it gets too big I guess the cpu can just abort and force a lock.  <br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480298/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor480489"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 10, 2012 6:56 UTC (Fri) by <b>Tuna-Fish</b> (subscriber, #61751)
+       [<a href="http://lwn.net/Articles/480489/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+The practical limit is most likely that the transaction needs to fit in it's entirely in L1 cache. At first, that sounds like a lot (16kBish per thread), but remember that the L1 cache is typically only 8-way. So, as long as accesses don't align badly you can touch quite a bit of memory without issue, but when you do the 9th access at a 4k alignment, it faults. (or likely *before* that -- the system will very likely want to leave some ways for the other thread.)<br>
+</div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480489/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+
+<a name="CommAnchor480665"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 10, 2012 19:03 UTC (Fri) by <b>Ben_P</b> (guest, #74247)
+       [<a href="http://lwn.net/Articles/480665/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+How small can transactional regions be?  Hopefully smaller than a page?<br>
+</div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480665/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor480667"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 10, 2012 19:12 UTC (Fri) by <b>josh</b> (subscriber, #17465)
+       [<a href="http://lwn.net/Articles/480667/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+As small as one cache line, as far as I can tell.  The spec mentions that other operations within the same cache line may cause spurious transaction conflicts.<br>
+</div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480667/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+</div>
+</div>
+</div>
+
+<a name="CommAnchor480134"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 8, 2012 21:59 UTC (Wed) by <b>zomonto</b> (guest, #82108)
+       [<a href="http://lwn.net/Articles/480134/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+Binutils support went in today:<br>
+<a href="http://article.gmane.org/gmane.comp.gnu.binutils/56264">http://article.gmane.org/gmane.comp.gnu.binutils/56264</a><br>
+</div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480134/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+
+<a name="CommAnchor480139"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 8, 2012 22:12 UTC (Wed) by <b>flewellyn</b> (subscriber, #5047)
+       [<a href="http://lwn.net/Articles/480139/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+Should be some very interesting ways to use it in userspace, as well.  Various forms of shared-memory IPC, for instance, or zero-copy message passing.<br>
+</div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480139/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+
+<a name="CommAnchor480190"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 9, 2012 8:38 UTC (Thu) by <b>colo</b> (subscriber, #45564)
+       [<a href="http://lwn.net/Articles/480190/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+Sounds like I'll consider upgrading my desktop when "Haswell" has launched.<br>
+<p>
+I just hope that Intel will eventually get its act together and (re-)enable ECC support in their mainstream desktop platforms, because I don't feel like paying extra for a Xeon when all I really need is what AMD has been providing even with their Sempron CPUs for the last couple of years.<br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480190/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor480191"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 9, 2012 8:54 UTC (Thu) by <b>k8to</b> (subscriber, #15413)
+       [<a href="http://lwn.net/Articles/480191/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+does sempron, etc, provide all that you would want?<br>
+</div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480191/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor480210"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 9, 2012 10:26 UTC (Thu) by <b>colo</b> (subscriber, #45564)
+       [<a href="http://lwn.net/Articles/480210/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+Yeah, AMD CPUs tend to have all the features I want (you can build an AMD machine supporting an IOMMU, ECC memory and also recent SSE extensions really cheap these days), but their CPUs' power consumption is quite high in comparison to, e. g., Sandy Bridge. I also do like Intel's onboard IGPs and their driver support quite much, although AMD's FOSS drivers seem to catch up more and more.<br>
+</div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480210/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor480411"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 9, 2012 21:08 UTC (Thu) by <b>Jonno</b> (subscriber, #49613)
+       [<a href="http://lwn.net/Articles/480411/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+Regarding the integrated graphics, I'm using both a Sandy Bridge (Intel) CPU and a Stars (AMD) CPU on different computers, and I find that the GPU drivers are comparable in features and stability. The Intel driver is better optimized, but the AMD hardware is so much faster that you still get way better performance using the AMD system. Of course, the Stars CPU draws more than twice the power of Sandy Bridge, so on a laptop Intel has an advantage on battery life...<br>
+</div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480411/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+</div>
+
+<a name="CommAnchor480490"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 10, 2012 7:03 UTC (Fri) by <b>Tuna-Fish</b> (subscriber, #61751)
+       [<a href="http://lwn.net/Articles/480490/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+Intel has been making the all-around better processors for quite a few years now. However, they like to artificially segment the market by fusing off features (that have little or no marginal cost to implement, and are in fact present in all Intel processors but disabled in the cheaper ones.) that are typically used by companies and professionals that are willing and able to fork over more money for their rigs.<br>
+<p>
+Unfortunately, many of those features only available in +$500 cpus are the ones that a lot of people here would be interested in.<br>
+</p><p>
+There really is nothing *wrong* in this, per se, it's just unfortunate for us. Right now, in the reasonable price class, the choice is between a fast and power-efficient cpu, and one that has all the interesting features.<br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480490/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+</div>
+</div>
+
+<a name="CommAnchor480194"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 9, 2012 9:38 UTC (Thu) by <b>ibukanov</b> (subscriber, #3942)
+       [<a href="http://lwn.net/Articles/480194/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+So finally Load-link/store-conditional instruction style come to x86 and in a few years ABA bugs, <a href="http://en.wikipedia.org/wiki/ABA_problem">http://en.wikipedia.org/wiki/ABA_problem</a>, caused by improper use of compare-and-swap, will be the thing of the past.<br>
+<p>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480194/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+
+<a name="CommAnchor480240"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 9, 2012 13:25 UTC (Thu) by <b>ms</b> (subscriber, #41272)
+       [<a href="http://lwn.net/Articles/480240/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+Sadly, it doesn't support Retry, let alone OrElse, which makes it fairly useless (or at the very least massively limits its use), and nested transactions are basically ignored - the inner transaction boundaries are ignored and the whole thing just becomes one monolithic transaction. Still, it's a start.<br>
+<p>
+Once we have transactional harddiscs, network cards, keyboards, mice and monitors, use of TM might actually become widespread...<br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480240/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor480492"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 10, 2012 7:52 UTC (Fri) by <b>Tuna-Fish</b> (subscriber, #61751)
+       [<a href="http://lwn.net/Articles/480492/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+<font class="QuotedText">&gt; Sadly, it doesn't support Retry, let alone OrElse</font><br>
+<p>
+Why would it need to? Those features can be perfectly well provided by the software. When a transaction fails, it jumps to a pre-defined failure destination, where most languages would place some sort of exponential backoff retry mechanism, but nothing stops you from providing a OrElse instead. <br>
+</p><p>
+Modern CPUs don't run microcode any faster than your code. (Because of the way it blocks the frontend, a reasonable case could be made that they run long and complex microcode *a lot slower* than your code.) There would be no value *at all* in providing those complex operations in the cpu itself.<br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480492/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor480511"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 10, 2012 10:19 UTC (Fri) by <b>ms</b> (subscriber, #41272)
+       [<a href="http://lwn.net/Articles/480511/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+<font class="QuotedText">&gt; &gt; Sadly, it doesn't support Retry, let alone OrElse</font><br>
+<font class="QuotedText">&gt; Why would it need to? Those features can be perfectly well provided by the software.</font><br>
+<p>
+Erm, so the txn hits a retry, which will have to have been rewritten as an abort. The purpose of retry is to suspend the txn until a value of the readset has been changed (and then restart the txn afresh), but you have no means to access the readset. So you'll then have to rerun the whole txn in software only in order to establish the readset, and then you'll have to go into some sort of backoff mode polling for changes to the readset. That on its own may introduce all sorts of cache thrashing issues. It's a bit fugly to do any sort of polling - STM tends to implement retry as an observer pattern. I wouldn't be too surprised if the broadcasts going on as part of the cache coherency protocol were pretty close to being sufficient to implementing such an observer-pattern implementation in hardware, though I understand it would depend heavily on what type of CCP you're doing.<br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480511/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+</div>
+</div>
+
+<a name="CommAnchor480256"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 9, 2012 14:39 UTC (Thu) by <b>slashdot</b> (guest, #22014)
+       [<a href="http://lwn.net/Articles/480256/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+"An XRELEASE prefixed instruction must restore the value of the elided lock to the value it had before the lock acquisition"<br>
+<p>
+This means that Intel's HLE feature won't work with Linux ticketlocks by just adding the hints.<br>
+</p><p>
+It seems unclear whether it's possible to have fair spinlocks and take advantage of HLE at the same time.<br>
+</p><p>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480256/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+
+<a name="CommAnchor480530"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 10, 2012 12:16 UTC (Fri) by <b>csamuel</b> (<b>✭ supporter ✭</b>, #2624)
+       [<a href="http://lwn.net/Articles/480530/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+It will be interesting to hear how this compares to the transactional memory in IBM's BlueGene/Q - that was announced at Hot Chips last August and the first 4 racks (for Sequoia at LLNL) have already shipped.  Seems like there might be more details for the Intel version even though it's farther in the future (not to mention that BG/Q compute nodes don't run Linux, or are unlikely to appear in consumer gear).<br>
+<p>
+<a rel="nofollow" href="http://arstechnica.com/hardware/news/2011/08/ibms-new-transactional-memory-make-or-break-time-for-multithreaded-revolution.ars">http://arstechnica.com/hardware/news/2011/08/ibms-new-tra...</a><br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480530/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+
+<a name="CommAnchor480713"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 11, 2012 1:15 UTC (Sat) by <b>vomlehn</b> (subscriber, #45588)
+       [<a href="http://lwn.net/Articles/480713/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+I have spent a bit of time thinking about this, and I'm not sure that this is going to be much of a boon to the Linux kernel. As a rule, we get performance either by using fine-grained granularity or going with lockless algorithms. The transactional memory feature means that, in situations where you don't touch too much memory, the hardware allows you to perform pretty well with coarse-grained locking.<br>
+<p>
+On Intel processors things could benefit. However, kernel code has to work on quite a range of processors. If performance is inadequate, we're going to move to fine-grained locking so that everyone wins. This means that all this fancy hardware is going to reduce to a load locked/store conditional functionality.<br>
+</p><p>
+Of course, lockless algorithms don't need the fancy hardware, at all.<br>
+</p><p>
+I'm sure that Intel would like this to help lock Linux onto Intel architectures, but ARM is coming on very strong. Over three decade I've seen small, even "toy", technologies unseat the reigning champion. Linux is, of course, one of those. It looks to me that, unless ARM gets a feature similar enough to this that we can use a single API to cover them both, the power of this feature will be largely under utilized.<br>
+</p><p>
+Or maybe I'm missing something...<br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480713/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor480731"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 11, 2012 4:02 UTC (Sat) by <b>deater</b> (subscriber, #11746)
+       [<a href="http://lwn.net/Articles/480731/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+<font class="QuotedText">&gt; I have spent a bit of time thinking about this, and I'm not sure that this &gt; is going to be much of a boon to the Linux kernel. As a rule, we get   </font><br>
+<font class="QuotedText">&gt; performance either by using fine-grained granularity or going with </font><br>
+<font class="QuotedText">&gt; lockless algorithms. The transactional memory feature means that, in </font><br>
+<font class="QuotedText">&gt; situations where you don't touch too much memory, the hardware allows you &gt; to perform pretty well with coarse-grained locking.</font><br>
+<p>
+There was a paper presented at ASPLOS 2009, "Maximum Benefit from a minimal HTM" that describes how even though converting a 2.4 Linux kernel to use transactional memory led to a large increase in performance, doing the same for 2.6 had no benefit of all because the locking had gotten so much better by then.<br>
+</p><p>
+So it will be interesting to see if anything useful comes out of this work by Intel.  From what I understand, Transactional Memory is mostly there to help people who aren't very good at writing multithread code; it can almost always be beaten by hand-tuned locking written by an expert.<br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/480731/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor482026"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 17, 2012 0:06 UTC (Fri) by <b>rise</b> (guest, #5045)
+       [<a href="http://lwn.net/Articles/482026/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+I believe the paper you're referencing is the Hofmann, Rossbach, and Witchel[0] one?  It's interesting, but from a quick read it appears all their results are from a machine simulator and describe a time of HTM that requires explicit conversion of parts of the kernel.  I'm not at all sure it's directly comparable or evidence that Intel's model of HTM will provide "no benefit at all".  They looked only at the kernel (already highly optimized around locking, disregarding other potential users), use a massively simplified in-order x86 model[1], and the handling of more complex &amp; advanced effects in the far-from-ideal Intel hardware - say on instruction caches/prefetching, reordering, speculative execution, etc. - are outside the paper's focus.  It's good research, but it's hardly conclusive evidence about real world performance of a somewhat different implementation on spectacularly different hardware.<br>
+<p>
+</p><p>
+[0] <a rel="nofollow" href="http://www.cs.utexas.edu/users/witchel/pubs/hofmann09asplos.pdf">http://www.cs.utexas.edu/users/witchel/pubs/hofmann09aspl...</a><br>
+[1] "Because exercising an operating system imposes a heavy burden on<br>
+simulation time, we use Simics’ in-order processor model<br>
+at 1 cycle per instruction"<br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/482026/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+<div class="Comment">
+
+<a name="CommAnchor482049"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 17, 2012 3:21 UTC (Fri) by <b>deater</b> (subscriber, #11746)
+       [<a href="http://lwn.net/Articles/482049/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+I'm usually not one to like results done purely in a simulator either, but this work was likely done in 2008... what actual hardware could they have used to do the experiment?  I was just impressed they tackled an actual real-world example like the Linux kernel and not just some set of microbenchmarks.<br>
+<p>
+It will be interesting to see similar work re-done now that actual implementations exist of TM.  I just don't think anyone has ever shown performance benefits from TM that couldn't also be realized with well-written traditional locking.<br>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/482049/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+</div>
+</div>
+
+<a name="CommAnchor481824"></a>
+<div class="CommentBox">
+  <p class="CommentTitle">Intel's upcoming transactional memory feature</p>
+  <div class="CommentBody">
+    <p class="CommentPoster">Posted Feb 16, 2012 3:07 UTC (Thu) by <b>slashdot</b> (guest, #22014)
+       [<a href="http://lwn.net/Articles/481824/">Link</a>]
+    </p>
+    <div class="FormattedComment">
+Well, this feature provides no guarantees that transactions will complete, so a traditional fallback path needs to be present even for Intel x86, meaning that at least in the current iteration it's useless for any kind of customer lock-in.<br>
+<p>
+</p></div>
+
+  </div>
+  <p>
+  </p><div class="CommentReplyButton">
+    <form action="http://lwn.net/Articles/481824/comment" method="post">
+      <input type="submit" value="Reply to this comment">
+    </form>
+  </div>
+  
+</div>
+</div>
+</td> <!-- MC -->
+<td class="RightColumn">
+<div id="azk93271_right_zone"><iframe id="ados_frame_azk93271_right_zone_38119" frameborder="0" scrolling="no" height="600" width="160"></iframe><img height="0px" width="0px" src="./Intel's upcoming transactional memory feature [LWN.net]_files/i(1).gif"></div>
+</td>
+</tr></tbody></table></td>
+</tr></tbody></table><!-- endpage -->
+
+        <center>
+        <p>
+        <font size="-2">
+        Copyright © 2012, Eklektix, Inc.<br>
+        Comments and public postings are copyrighted by their creators.<br>
+        Linux  is a registered trademark of Linus Torvalds<br>
+        </font>
+        </p></center>
+        
+            <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+            </script><script src="./Intel's upcoming transactional memory feature [LWN.net]_files/ga.js" type="text/javascript"></script>
+            <script type="text/javascript">
+            try {
+            var pageTracker = _gat._getTracker("UA-2039382-1");
+            pageTracker._trackPageview();
+            } catch(err) {}</script>
+            
+        
+        </body></html>
