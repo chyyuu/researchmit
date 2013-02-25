@@ -21,6 +21,65 @@ OS kernel can use goroutine and channel?
 Should vm/sched/fs subsystem support goroutine and channel? 
 
 
+------------------
+memory
+------------------
+vmap: An address space. This manages the mapping from virtual addresses to virtual memory descriptors. LIKE mm in linux
+ in vmap, there is a filed:
+  // Virtual page frames
+  typedef radix_array<vmdesc, USERTOP / PGSIZE, PGSIZE,
+                      kalloc_allocator<vmdesc> > vpf_array;
+
+vmdesc:  is  a virtual memory descriptor that maintains metadata for pages in an address space., LIKE vma in linux
+age_tracker: page tracker maintains the per-page metadata necessary to compute TLB shootdowns.  
+pgmap :  One level in an x86-64 page table, typically the top level
+class class page_map_cache : shootdown::cache_tracker  //A page_map_cache controls the hardware cache of virtual-to-physical page mappings.
+
+Every core has a page table,  so if a process run a several core, then there are several pagetable for process, support lazy create page table .
+
+support 2~3 memory mechanism: see param.h
+
+namespace mmu_shared_page_table {
+namespace mmu_per_core_page_table {
+
+// The MMU scheme.  One of:
+//  mmu_shared_page_table
+//  mmu_per_core_page_table
+#define MMU_SCHEME    mmu_per_core_page_table
+// The TLB shootdown scheme, for shared page tables.  One of:
+//  batched_shootdown
+//  core_tracking_shootdown   //calss in hwvm.hh 
+#define TLB_SCHEME    core_tracking_shootdown
+// Physical page reference counting scheme.  One of:
+//  :: for shared reference counters
+//  refcache:: for refcache counters
+//  locked_snzi:: for SNZI counters
+#define PAGE_REFCOUNT refcache::
+
+in cpu.hh
+namespace MMU_SCHEME {
+  class page_map_cache;
+};
+
+
+---------------
+pagefault process
+do_pagefault () in trap.cc
+  --> pagefault(myproc()->vmap, addr, tf->err) in vm.cc
+     -->  vmap->pagefault(va, err);
+
+
+----------
+radix tree V.S. concurrent skip list?? in paper 5.4  ref 14
+----------------
+gc.cc
+---------------
+means a rcu implementation for object garbage collection //not used in vm
+
+
+---------------
+sched : implement by Nickolai Zeldovich 泽利多维奇
+
 ----------------
 thread is  forkt(base + stack_size, (void*) start, arg, FORK_SHARE_VMAP | FORK_SHARE_FD)
 
@@ -509,3 +568,14 @@ Problem:
 1 meaning of class steal_order in kalloc.cc
 2 meaning of gc  in gc.cc
 3 content of lb.hh ( balance_pool  used in sched.cc) rnd.hh  AND sched using steal mechanism or some balance struct?
+
+
+
+----------------------------------------
+FS
+
+ref.hh
+sref class : a more RCU-friendly referenced base class
+
+
+nstbl?

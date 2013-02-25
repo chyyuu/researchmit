@@ -1,0 +1,77 @@
+K 25
+svn:wc:ra_dav:version-url
+V 36
+/svn/!svn/ver/142/trunk/packages/deb
+END
+libgperftools0.manpages
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/!svn/ver/142/trunk/packages/deb/libgperftools0.manpages
+END
+changelog
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/!svn/ver/142/trunk/packages/deb/changelog
+END
+libgperftools-dev.dirs
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/!svn/ver/142/trunk/packages/deb/libgperftools-dev.dirs
+END
+docs
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/44/trunk/packages/deb/docs
+END
+copyright
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/!svn/ver/142/trunk/packages/deb/copyright
+END
+rules
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/9/trunk/packages/deb/rules
+END
+libgperftools0.dirs
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/!svn/ver/142/trunk/packages/deb/libgperftools0.dirs
+END
+libgperftools-dev.install
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/!svn/ver/142/trunk/packages/deb/libgperftools-dev.install
+END
+README
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/svn/!svn/ver/9/trunk/packages/deb/README
+END
+control
+K 25
+svn:wc:ra_dav:version-url
+V 44
+/svn/!svn/ver/142/trunk/packages/deb/control
+END
+libgperftools0.install
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/!svn/ver/142/trunk/packages/deb/libgperftools0.install
+END
+compat
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/svn/!svn/ver/9/trunk/packages/deb/compat
+END
