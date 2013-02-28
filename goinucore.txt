@@ -1,0 +1,78 @@
+
+based on go -r60 
+
+修改了
+./src/pkg/runtime/cgo/ucoresmp_amd64.c 
+去掉一个出错后的注释，应该关系不大
+才编译通过
+
+changed file
+
+//simple
+----------------
+src/cmd/6l/asm.c  
+src/cmd/6l/obj.c  
+src/cmd/6l/pass.c 
+src/cmd/ld/lib.h
+src/cmd/prof/Makefile
+src/pkg/exec/Makefile
+
+//象只是版本不同造成的
+src/pkg/gob/doc.go
+src/pkg/fmt/fmt_test.go  
+src/pkg/fmt/print.go 
+src/pkg/image/draw/draw.go
+src/pkg/image/image.go
+src/pkg/json/*
+
+//简单，但不是太清楚
+src/pkg/exp/datafmt/*  去掉了
+src/pkg/net/*_ucoresmp.go 增加的文件，必须要吗
+src/pkg/os/inotify/inotify_ucoresmp.go 增加的文件，必须要吗
+
+
+//主要增加的部分，可以有对应的linux对比 大致类似，只是signal处理好像有些不同
+go/src/pkg/runtime/ucoresmp/
+
+
+不太清楚的部分
+src/cmd/gc/obj.c outhist函数去掉了一段代码 不知何用？
+
+src/cmd/ld/dwarf.c 有些地方不懂  
+// Go's runtime C sources are sane, and Go sources nest only 1 level,
+// so a handful would be plenty, if it weren't for the fact that line
+// directives can push an unlimited number of them.
+static struct {
+	int file;
+	vlong line;
+} *includestack;
+static int includestacksize;
+	checknesting();？
+		includestacksize += 1;？
+		includestacksize <<= 2;？
+...
+
+
+------------------------------------------
+补充信息
+我先编译出go的编译执行环境，位于如下目录
+/home2/chy/mit/code-farms/ucore-x64-smp/go
+
+也设置了路径为 go/bin: $PATH
+然后
+6g -o hw1.6 testsuit/hw1.go
+6g -o hw2.6 testsuit/hw2.go
+6g -o peter.6 testsuit/peter.go
+6l -o hw1 hw1.6
+6l -o hw2 hw2.6
+6l -o peter peter.6
+
+在拷贝到 /home2/chy/mit/code-farms/ucore-x64-smp/ucore/src/user-ucore/_initial/
+下
+之后在ucore下执行
+make
+make qemu
+可以看到三个文件
+但执行都crash了
+
+采用 go branch 就可以了。

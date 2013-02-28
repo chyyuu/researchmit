@@ -1,7 +1,73 @@
-my idea
+02/28/2013
+==================================
+work with nickolai and find a bug!
+
+make HW=mtrace mtrace.out
+fix a bug exec.cc (should set pe to be writable)
+
+then in qemu
+ $ftest -t 1-10 
+ $halt
+
+got mtrace.out, now analyze  
+../mtrace/mtrace-tools/mscan --check-testcases
+
+Done! read the results
+
+notice: xv6/libutil/testgen.c
+
+02/27/2013
+==================================
+build xv6 with mtrace
+
+0 install gcc/g++-4.7.2+ (if gcc-4.6 )
+
+1 get newest xv6
+git ssh://chyyuu@amsterdam.csail.mit.edu/home/am0/6.828/xv6.git
+
+2 checkout branch scale-amd64
+git checkout -b scale-amd64 origin/scale-amd64
+
+3 test make qemu
+make qemu
+
+4 test make mtrace, read README
+
+git ssh://chyyuu@amsterdam.csail.mit.edu/home/am6/mpdev/qemu.git mtrace
+cd mtrace
+git checkout -b mtrace origin/mtrace
+//read README.mtrace
+
+ ./configure --prefix=/home2/chy/local \
+            --target-list="x86_64-softmmu" \
+            --disable-kvm  \
+            --audio-card-list="" \
+            --disable-vnc-jpeg \
+            --disable-vnc-png \
+            --disable-strip
+make
+make install
+
+set PATH
+
+5 build mtrace in xv6
+cd ../xv6
+make mtrace.out  // get mtrace.out
 
 
+6 build mscan 
+cd ../mtrace/mtrace-tools
+//read README
+git clone ssh://chyyuu@am.lcs.mit.edu/home/am6/mpdev/libelfin.git
+cd libelfin
+cd elf ; make        // build libelf++ lib
+cd ../dwarf ; make   //build libdwarf++ lib
+cd ../..
+make                // now get mscan tool
 
+cd ../xv6
+make mscan.out      //done, but don't know how to use mscan tool
+  
 
 ----------------------
 how os support support new lang, such as lang?
@@ -570,7 +636,30 @@ Problem:
 3 content of lb.hh ( balance_pool  used in sched.cc) rnd.hh  AND sched using steal mechanism or some balance struct?
 
 
+----------------------------------------
+syscall
 
+user interface
+o.qemu/lib/sysstubs.S  produced by tools/syscalls.py
+
+kernel interface
+sysentry :: kernel/trapasm.S
+     sysentry_c :: trap.cc
+        syscall :: syscall.cc
+          sys_write
+              getfile
+                ...
+
+proc
+   filetable *ftable
+   sref<inode> cwd;             // Current directory
+   sref<mnode> cwd_m;           // Current directory
+
+class mdir;
+class mfile;
+class mdev;
+class msock;
+mfile mnode
 ----------------------------------------
 FS
 
