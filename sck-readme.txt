@@ -1,3 +1,17 @@
+03/01/2013
+==================================
+read book  "C++ Concurrency in Action" and other web info 
+to unstand the concurrent memory model in C++11  (C++多线程内存模型)
+在atomic类型提供的三种顺序属性
+1. 顺序一致性模型（Sequential Consistency）
+2 acquire release ordering : 对顺序性的约束程度介于sequential consistency（顺序一致性）和relaxed ordering之间，
+3 relaxed ordering
+需进一步看《C++0x漫谈》系列之：多线程内存模型 和参考文献
+
+另外 可进一步了解go的csp模型
+http://swtch.com/~rsc/thread/  
+Bell Labs and CSP Threads
+
 02/28/2013
 ==================================
 read book "C++ Concurrency in Action" and download src code
