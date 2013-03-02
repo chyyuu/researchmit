@@ -1,5 +1,8 @@
 02/28/2013
 ==================================
+read book "C++ Concurrency in Action" and download src code
+g++ -std=c++11 -g listing_1.1.cpp -lpthread
+
 work with nickolai and find a bug!
 
 make HW=mtrace mtrace.out
