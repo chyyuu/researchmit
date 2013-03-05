@@ -1,3 +1,27 @@
+03/04/2013
+==================================
+new idea:
+The basic question I hope to understand is which is the better
+syscall interface and implement for multicore OS?  I hope I can do below things:
+1 analyze the  cache behavior in syscall subsystem of mtraced xv6 and linux in qemu.
+2 analyze the  cache behavior in syscall subsystem of mtraced xv6 and linux in real machine.
+3 follow the flexsc, design new  syscall subsystem for multicore OS,
+first step in xv6  and ucore, second in Linux (If we have enough
+time).
+
+This week, I will try to analyze the  cache behavior in syscall
+subsystem of mtraced xv6 and linux with the qemu.
+
+
+analyze mtrace.out and mtrace.[ch]
+
+see sck-mtrace-analysis.txt
+
+03/03/2013
+==================================
+analyze mtrace
+see sck-mtrace-analysis.txt
+
 03/01/2013
 ==================================
 read book  "C++ Concurrency in Action" and other web info 
@@ -23,7 +47,7 @@ make HW=mtrace mtrace.out
 fix a bug exec.cc (should set pe to be writable)
 
 then in qemu
- $ftest -t 1-10 
+ $fstest -t 1-10 
  $halt
 
 got mtrace.out, now analyze  

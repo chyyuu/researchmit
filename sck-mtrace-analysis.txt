@@ -1,0 +1,1419 @@
+======================================================================================
+qemu add mtrace
+
+NewFiles
+mtrace_tools/*
+mtrace-magic.h
+mtrace.[ch] //main part
+
+Changed Files
+mtrace/target-i386/cpu.h::cpu_get_tb_cpu_state(
+-----------------
+ADD
+    if (!(env->hflags & HF_CS64_MASK)) //如果不是64位，设置pc指向的地址  内容为32位的内容
+        *pc &= 0xffffffff;
+
+mtrace/target-i386/helper.c::cpu_x86_init(
+------------------
+ADD
+    mtrace_init(); //初始化mtrace
+    
+mtrace/target-i386/helper.h
+------------------
+ADD  //增加一些mtrace特殊指令
+    DEF_HELPER_1(pause, void, int)
+    DEF_HELPER_0(mtrace_inst_exec, void)
+    DEF_HELPER_2(mtrace_inst_call, void, tl, tl)
+    DEF_HELPER_1(mtrace_inst_ret, void, tl)
+    DEF_HELPER_0(mtrace_insn_count, void)    
+
+mtrace/target-i386/op_helper.c::helper_lock(
+------------------
+ADD
+    mtrace_lock_start(env);
+        
+mtrace/target-i386/op_helper.c::helper_unlock(
+------------------
+ADD
+    mtrace_lock_stop(env);
+
+mtrace/target-i386/op_helper.c
+------------------
+ADD functions
+    void helper_pause(int next_eip_addend)
+    {
+        env->exception_index = EXCP_INTERRUPT;
+        EIP += next_eip_addend;
+        cpu_loop_exit();
+    }
+
+    void helper_mtrace_inst_exec(void)
+    {
+        mtrace_inst_exec(EAX, EBX, ECX, EDX, ESI, EDI);
+    }
+
+    void helper_mtrace_inst_call(target_ulong target_pc, target_ulong return_pc)
+    {
+        mtrace_inst_call(target_pc, return_pc, 0);
+    }
+
+    void helper_mtrace_inst_ret(target_ulong target_pc)
+    {
+        mtrace_inst_call(target_pc, 0, 1);
+    }
+
+    void helper_mtrace_insn_count(void) 
+    {
+        mtrace_inst_inc();
+    }
+
+mtrace/target-i386/translate.c
+--------------
+fun disas_insn(
+ADD
+    //-------------------------------------
+    if (mtrace_system_enable_get())
+	gen_helper_mtrace_insn_count(); //指令计数
+	//-------------------------------------
+	
+      case 2: /* call Ev */
+            /* XXX: optimize if memory (no 'and' is necessary) */
+            if (s->dflag == 0)
+                gen_op_andl_T0_ffff();
+            next_eip = s->pc - s->cs_base;
+	    gen_helper_mtrace_inst_call(cpu_T[0], tcg_const_i64(next_eip)); //记录call的地址
+	    
+	    
+	  case 0x87: /* xchg Ev, Gv */
+        if ((b & 1) == 0)
+            ot = OT_BYTE;
+        else
+            ot = dflag + OT_WORD;
+        modrm = ldub_code(s->pc++);
+        reg = ((modrm >> 3) & 7) | rex_r;
+        mod = (modrm >> 6) & 3;
+        if (mod == 3) {
+            rm = (modrm & 7) | REX_B(s);
+        do_xchg_reg:
+        //----------------------------------------------
+	    /* the instruction for calling into memory trace code? */
+	    if (reg == R_EBX && rm == R_EBX)
+		gen_helper_mtrace_inst_exec();  //xchg记录	
+        //-----------------------------------------------
+
+      case 0xc3: /* ret */
+        gen_pop_T0(s);
+        gen_pop_update(s);
+        if (s->dflag == 0)
+            gen_op_andl_T0_ffff();
+	    gen_helper_mtrace_inst_ret(cpu_T[0]); //记录返回地址
+
+
+    case 0xe8: /* call im */
+        {
+            if (dflag)
+                tval = (int32_t)insn_get(s, OT_LONG);
+            else
+                tval = (int16_t)insn_get(s, OT_WORD);
+            next_eip = s->pc - s->cs_base;
+            tval += next_eip;
+            if (s->dflag == 0)
+                tval &= 0xffff;
+            else if(!CODE64(s))
+                tval &= 0xffffffff;
+	        gen_helper_mtrace_inst_call(tcg_const_i64(tval), 
+					tcg_const_i64(next_eip));    //记录call的地址
+
+
+    case 0x90: /* nop */
+        /* XXX: correct lock test for all insn */
+        if (prefixes & PREFIX_LOCK) {
+            goto illegal_op;
+        }
+        /* If REX_B is set, then this is xchg eax, r8d, not a nop.  */
+        if (REX_B(s)) {
+            goto do_xchg_reg_eax;
+        }
+        if (prefixes & PREFIX_REPZ) {
+            gen_svm_check_intercept(s, pc_start, SVM_EXIT_PAUSE);
+            //-------------------------------------
+            if (s->cc_op != CC_OP_DYNAMIC)
+                gen_op_set_cc_op(s->cc_op);
+            gen_jmp_im(pc_start - s->cs_base);
+            gen_helper_pause(tcg_const_i32(s->pc - pc_start)); //记录暂停地址
+            s->is_jmp = DISAS_TB_JUMP;
+            //--------------------------------------
+        }
+
+mtrace/tcg/i386/tcg-target.c
+--------------------------------
+function tcg_out_tlb_load(
+ADD: the end
+    //----------------------------------
+    /* Save the guest address in the second argument register */
+    tcg_out_mov(s, type, r1, addrlo);
+    //----------------------------------
+
+function tcg_out_qemu_ld
+ADD : tlb hit, then tell mtrace
+    //-------------------------------------------
+    /* Tell mtrace */
+    tcg_out_movi(s, TCG_TYPE_I32, tcg_target_call_iarg_regs[2], 1<<s_bits);
+    tcg_out_calli(s, (tcg_target_long)mtrace_tcg_ld);
+    //-------------------------------------------
+    
+mtrace/cpu-all.h    
+----------------------------
+ADD
+in struct RAMBlock
+add 
+    uint8_t *cline_track;
+    ram_addr_t cline_track_size;
+    
+//----------------------------------------------------------------------------
+/* This is used only by mtrace. */
+extern RAMBlock *qemu_ramblock_from_host(void *ptr);
+
+void REGPARM mtrace_st(target_ulong host_addr, target_ulong guest_addr, char bytes, void *retaddr);
+void REGPARM mtrace_ld(target_ulong host_addr, target_ulong guest_addr, char bytes, void *retaddr);
+void REGPARM mtrace_tcg_st(target_ulong host_addr, target_ulong guest_addr, char bytes);
+void REGPARM mtrace_tcg_ld(target_ulong host_addr, target_ulong guest_addr, char bytes);
+void mtrace_io_write(void *cb, target_phys_addr_t host_addr, target_ulong guest_addr, 
+		     char bytes, void *retaddr);
+void mtrace_io_read(void *cb, target_phys_addr_t host_addr, target_ulong guest_addr,
+		    char bytes, void *retaddr);
+void mtrace_inst_exec(target_ulong a0, target_ulong a1, 
+		      target_ulong a2, target_ulong a3,
+		      target_ulong a4, target_ulong a5);
+void mtrace_inst_call(target_ulong target_pc, target_ulong return_pc,
+		      int ret);
+
+/* atomic instructions (e.g. lock; inc) */
+void mtrace_lock_start(CPUState *env);
+void mtrace_lock_stop(CPUState *env);
+void mtrace_inst_inc(void);    
+//-----------------------------------------------
+
+
+mtrace/cpu-exec.c
+------------------------
+ADD
+static int mtrace_tb_count;
+in cpu_exec function, exec a tb, then mtrace_tb_count ++
+
+Silas Boyd-Wickize add below code L 653-659 ???
+ else {
+			if (mtrace_enable_get() && mtrace_quantum_get()) {
+			    if (mtrace_tb_count >= mtrace_quantum_get()) {
+				cpu_loop_exit();
+			    }
+			}
+		    }
+
+
+mtrace/exec.c
+---------------------------
+ADD
+function  qemu_ram_free
+        mtrace_cline_track_free(block);
+
+ADD function, seems only check the valid of ram_list.blocks
+//-------------------------------
+/* This is used only by mtrace. */
+RAMBlock *qemu_ramblock_from_host(void *ptr)
+{
+    RAMBlock *block;
+    uint8_t *host = ptr;
+
+    QLIST_FOREACH(block, &ram_list.blocks, next) {
+        if (host - block->host < block->length) {
+            return block;
+        }
+    }
+
+    fprintf(stderr, "mtrace: bad ram pointer %p\n", ptr);
+    abort();
+
+    return 0;
+}
+//--------------------------------
+
+mtrace/softmmu_template.h
+-------------------------
+ADD
+    #define __GETPC() ((void *)((unsigned long)__builtin_return_address(0) - 1))
+
+in function glue(io_read, SUFFIX)
+
+    #if SHIFT <= 2
+        res = io_mem_read[index][SHIFT](io_mem_opaque[index], physaddr);
+        mtrace_io_read((void *)io_mem_read[index][SHIFT], physaddr, addr, DATA_SIZE, retaddr); // trace io read
+    #else
+    #ifdef TARGET_WORDS_BIGENDIAN
+        res = (uint64_t)io_mem_read[index][2](io_mem_opaque[index], physaddr) << 32;
+        res |= io_mem_read[index][2](io_mem_opaque[index], physaddr + 4);
+        mtrace_io_read((void *)io_mem_read[index][2], physaddr, addr, DATA_SIZE, retaddr); // trace io read
+    #else
+        res = io_mem_read[index][2](io_mem_opaque[index], physaddr);
+        res |= (uint64_t)io_mem_read[index][2](io_mem_opaque[index], physaddr + 4) << 32;
+        mtrace_io_read((void *)io_mem_read[index][2], physaddr, addr, DATA_SIZE, retaddr); // trace io read
+    #endif
+
+
+in function glue(glue(__ld, SUFFIX), MMUSUFFIX)
+/* handle all cases except unaligned access which span two pages */
+DATA_TYPE REGPARM glue(glue(__ld, SUFFIX), MMUSUFFIX)(target_ulong addr,
+                                                      int mmu_idx)
+ADD
+  L131: res = glue(glue(ld, USUFFIX), _raw)((uint8_t *)(long)(addr+addend));
+	    mtrace_ld(addr + addend, addr, DATA_SIZE, GETPC());  //trace ld
+        ...
+  L186: res = glue(glue(ld, USUFFIX), _raw)((uint8_t *)(long)(addr+addend));
+	    mtrace_ld(addr + addend, addr, DATA_SIZE, retaddr);  //trace ld
+
+
+in functin glue(io_write, SUFFIX)
+//跟踪io wirte
+    #if SHIFT <= 2
+        io_mem_write[index][SHIFT](io_mem_opaque[index], physaddr, val);
+        mtrace_io_write((void *)io_mem_write[index][SHIFT], physaddr, addr, DATA_SIZE, retaddr);
+    #else
+    #ifdef TARGET_WORDS_BIGENDIAN
+        io_mem_write[index][2](io_mem_opaque[index], physaddr, val >> 32);
+        io_mem_write[index][2](io_mem_opaque[index], physaddr + 4, val);
+        mtrace_io_write((void *)io_mem_write[index][2], physaddr, addr, DATA_SIZE, retaddr);
+    #else
+        io_mem_write[index][2](io_mem_opaque[index], physaddr, val);
+        io_mem_write[index][2](io_mem_opaque[index], physaddr + 4, val >> 32);
+        mtrace_io_write((void *)io_mem_write[index][2], physaddr, addr, DATA_SIZE, retaddr);
+    #endif
+
+in function glue(glue(__st, SUFFIX), MMUSUFFIX)
+//跟踪 st
+ L273： glue(glue(st, SUFFIX), _raw)((uint8_t *)(long)(addr+addend), val);
+	    mtrace_st(addr + addend, addr, DATA_SIZE, GETPC());  // trace st
+        ....
+ L326： glue(glue(st, SUFFIX), _raw)((uint8_t *)(long)(addr+addend), val);
+	    mtrace_st(addr + addend, addr, DATA_SIZE, retaddr); // trace st
+	    
+mtrace/vl.c
+----------------
+增加选项
+	    case QEMU_OPTION_mtrace_enable:
+		mtrace_system_enable_set(1);
+		break;
+	    case QEMU_OPTION_mtrace_file:
+		mtrace_log_file_set(optarg);
+		break;
+	    case QEMU_OPTION_mtrace_all:
+		mtrace_cline_trace_set(0);
+		break;
+	    case QEMU_OPTION_mtrace_locked:
+		mtrace_lock_trace_set(1);
+		break;
+	    case QEMU_OPTION_mtrace_calls:
+		mtrace_call_trace_set(1);
+		break;
+	    case QEMU_OPTION_mtrace_sample:
+		mtrace_sample_set(atoi(optarg));
+		break;
+	    case QEMU_OPTION_mtrace_quantum:
+		mtrace_quantum_set(atoi(optarg));
+		break;
+		
+mtrace-magic.h
+----------------------------
+#ifndef _MTRACE_MAGIC_H_
+#define _MTRACE_MAGIC_H_
+
+enum {
+    MTRACE_ENTRY_REGISTER = 1,
+};
+
+typedef enum {
+    mtrace_entry_label = 1,
+    mtrace_entry_access,
+    mtrace_entry_host,
+    mtrace_entry_fcall,
+    mtrace_entry_segment,
+    mtrace_entry_call,
+    mtrace_entry_lock,
+    mtrace_entry_task,
+    mtrace_entry_sched,
+    mtrace_entry_machine,
+    mtrace_entry_appdata,
+    
+    mtrace_entry_ascope,        /* abstract variable scope */
+    mtrace_entry_avar,          /* abstract variables */
+
+    mtrace_entry_gc,
+    mtrace_entry_gcepoch,
+
+    mtrace_entry_num		/* NB actually num + 1 */
+} mtrace_entry_t;
+
+typedef enum {
+    mtrace_label_heap = 1,	/* kmalloc, etc */
+    mtrace_label_block,		/* page_alloc, etc */
+    mtrace_label_static,	/* .data, .bss, etc */
+    mtrace_label_percpu,	/* .data..percpu (base addr. set at runtime) */
+
+    mtrace_label_end
+} mtrace_label_t;
+
+typedef enum {
+    mtrace_access_all_cpu = 1,
+    
+    mtrace_call_clear_cpu,
+    mtrace_call_set_cpu,
+
+    mtrace_disable_count_cpu,
+    mtrace_enable_count_cpu,
+} mtrace_host_t;
+
+typedef enum {
+    /* Don't record accesses. */
+    mtrace_record_disable = 0,
+
+    /* Record accesses that cause cache line movement.  Initially, all
+     * cache lines will be considered shared by all CPUs. */
+    mtrace_record_movement,
+
+    /* Record unique accesses within each abstract scope at a
+     * granularity of 16 bytes. */
+    mtrace_record_ascope,
+
+    /* Like mtrace_record_ascope, but record iff in kernel mode. */
+    mtrace_record_kernelscope,
+} mtrace_record_mode_t;
+
+#define __pack__ __attribute__((__packed__))
+
+/*
+ * The common mtrace entry header
+ */
+struct mtrace_entry_header {
+    mtrace_entry_t type;
+    uint16_t size;
+    uint16_t cpu;
+    uint64_t access_count;
+    uint64_t ts;		/* per-core time stamp */
+} __pack__;
+
+/*
+ * The guest specified a segment for a label/object type
+ */
+struct mtrace_segment_entry {
+    struct mtrace_entry_header h;    
+
+    uint64_t baseaddr;
+    uint64_t endaddr;
+    uint16_t cpu;
+    mtrace_label_t object_type;
+} __pack__;
+
+/*
+ * The guest specified the begining or end to a function call
+ */
+typedef enum {
+    /* Start a new call stack at with the function at 'pc', identified
+     * by a unique tag.  A given tid may have nested call stacks
+     * (e.g., during interrupt handling) and this nesting level is
+     * recorded in 'depth'.  Subsequent call_entries with the same cpu
+     * apply to this call stack. */
+    mtrace_start = 1,
+    /* Terminate the call stack identified by 'tag'. */
+    mtrace_done,
+    mtrace_done_value,
+    /* Resume execution on the paused call stack identified by 'tag'.
+     * A call stack may be resumed on a different cpu than it was
+     * paused on. */
+    mtrace_resume,
+    /* Pause execution on the call stack identified by 'tag'.  This is
+     * typically done just before starting a new call stack or
+     * resuming another call stack. */
+    mtrace_pause,
+} mtrace_call_state_t;
+
+struct mtrace_fcall_entry {
+    struct mtrace_entry_header h;    
+
+    uint64_t tid;
+    uint64_t pc;
+    uint64_t tag;
+    uint16_t depth;
+    mtrace_call_state_t state;
+} __pack__;
+
+struct mtrace_call_entry {
+    struct mtrace_entry_header h;    
+
+    uint64_t target_pc;
+    uint64_t return_pc;    
+    int ret;
+} __pack__;
+
+/*
+ * The guest sent a message to the host (QEMU)
+ */
+struct mtrace_host_entry {
+    struct mtrace_entry_header h;
+    mtrace_host_t host_type;
+    uint64_t global_ts;		/* global time stamp */
+    
+    union {
+	/* Enable/disable access tracing */
+	struct {
+	    /* Access recording mode */
+	    mtrace_record_mode_t mode;
+	    /* Name of trace */
+	    char str[64];
+	} access;
+
+	/* Enable/disable call/ret tracing */
+	struct {
+	    uint64_t cpu;
+	} call;
+    };
+} __pack__;
+
+/* 
+ * The guest specified an string to associate with the range: 
+ *   [host_addr, host_addr + bytes)
+ */
+struct mtrace_label_entry {
+    struct mtrace_entry_header h;
+
+    uint64_t host_addr;
+
+    mtrace_label_t label_type;  /* See mtrace-magic.h */
+    char str[64];
+    uint64_t guest_addr;
+    uint64_t bytes;
+    uint64_t pc;
+} __pack__;
+
+/*
+ * A memory access to host_addr, executed on cpu, at the guest pc
+ */
+typedef enum {
+    mtrace_access_ld = 1,
+    mtrace_access_st,
+    mtrace_access_iw,	/* IO Write, which is actually to RAM */
+} mtrace_access_t;
+
+struct mtrace_access_entry {
+    struct mtrace_entry_header h;
+
+    mtrace_access_t access_type;
+    uint8_t traffic:1;
+    uint8_t lock:1;
+    uint8_t deps:1;
+    uint64_t pc;
+    uint64_t host_addr;
+    uint64_t guest_addr;
+    uint8_t bytes;
+}__pack__;
+
+/*
+ * A guest lock acquire/release
+ */
+typedef enum {
+    mtrace_lockop_acquire = 1,
+    mtrace_lockop_acquired,
+    mtrace_lockop_release,
+} mtrace_lockop_t;
+
+struct mtrace_lock_entry {
+    struct mtrace_entry_header h;
+
+    uint64_t pc;
+    uint64_t lock;
+    char str[64];
+    mtrace_lockop_t op;
+    uint8_t read;
+} __pack__;
+
+/*
+ * A guest task create
+ */
+typedef enum {
+    mtrace_task_init = 1,
+    mtrace_task_update,
+    mtrace_task_exit,	/* IO Write, which is actually to RAM */
+} mtrace_task_t;
+
+struct mtrace_task_entry {
+    struct mtrace_entry_header h;
+
+    uint64_t tid;	       /* Thread ID */
+    uint64_t tgid;	       /* Thread Group ID */
+    mtrace_task_t task_type;
+    char str[64];
+} __pack__;
+
+/*
+ * A task switch in the guest
+ */
+struct mtrace_sched_entry {
+    struct mtrace_entry_header h;
+
+    uint64_t tid;
+} __pack__;;
+
+/*
+ * The QEMU guest machine info
+ */
+struct mtrace_machine_entry {
+    struct mtrace_entry_header h;
+
+    uint16_t num_cpus;
+    uint64_t num_ram;
+    uint64_t quantum;
+    uint64_t sample;
+    uint8_t  locked:1;
+    uint8_t  calls:1;
+} __pack__;
+
+/*
+ * Application defined data
+ */
+struct mtrace_appdata_entry {
+    struct mtrace_entry_header h;
+    
+    uint16_t appdata_type;
+    union {
+	uint64_t u64;
+    };
+} __pack__;
+
+
+/*
+ * Abstract variable scope entry/exit.  Note that abstract variable
+ * scopes live on the same call stacks that regular function calls do.
+ */
+struct mtrace_ascope_entry {
+    struct mtrace_entry_header h;
+    uint8_t exit:1;
+    char name[64];
+} __pack__;
+
+/*
+ * Abstract variable read/write
+ */
+struct mtrace_avar_entry {
+    struct mtrace_entry_header h;
+    uint8_t write:1;
+    char name[64];
+} __pack__;
+
+/*
+ * RCU GC
+ */
+struct mtrace_gc_entry {
+    struct mtrace_entry_header h;
+    uint64_t base;
+    uint64_t nbytes;
+    char name[64];
+    uint8_t gc:1;     // object scheduled for GC (otherwise, specifies nbytes)
+} __pack__;
+
+struct mtrace_gcepoch_entry {
+    struct mtrace_entry_header h;
+    uint8_t begin:1;
+} __pack__;
+
+
+union mtrace_entry {
+    struct mtrace_entry_header h;
+
+    struct mtrace_access_entry access;
+    struct mtrace_label_entry label;
+    struct mtrace_host_entry host;
+    struct mtrace_fcall_entry fcall;
+    struct mtrace_segment_entry seg;
+    struct mtrace_call_entry call;
+    struct mtrace_lock_entry lock;
+    struct mtrace_task_entry task;
+    struct mtrace_sched_entry sched;
+    struct mtrace_machine_entry machine;
+    struct mtrace_appdata_entry appdata;
+    struct mtrace_ascope_entry ascope;
+    struct mtrace_avar_entry avar;
+    struct mtrace_gc_entry gc;
+    struct mtrace_gcepoch_entry gcepoch;
+} __pack__;
+
+#ifndef QEMU_MTRACE
+
+#ifndef PIN_MTRACE
+/*
+ * Magic instruction for calling into mtrace in QEMU.
+ */
+static inline void mtrace_magic(unsigned long ax, unsigned long bx, 
+				unsigned long cx, unsigned long dx,
+				unsigned long si, unsigned long di)
+{
+    __asm __volatile("xchg %%bx, %%bx" 
+		     : 
+		     : "a" (ax), "b" (bx), 
+		       "c" (cx), "d" (dx), 
+		       "S" (si), "D" (di));
+}
+#else
+void mtrace_magic(unsigned long a0, unsigned long a1,
+                  unsigned long a2, unsigned long a3,
+                  unsigned long a4, unsigned long a5)
+    __attribute__((noinline));
+#endif
+
+static inline void mtrace_entry_register(volatile struct mtrace_entry_header *h,
+					 unsigned long type,
+					 unsigned long len)
+{
+    mtrace_magic(MTRACE_ENTRY_REGISTER, (unsigned long)h,
+		 type, len, 0, 0);
+}
+
+static inline void mtrace_enable_set(mtrace_record_mode_t mode, const char *str)
+{
+    volatile struct mtrace_host_entry entry;
+
+    entry.host_type = mtrace_access_all_cpu;
+    entry.access.mode = mode;
+    strncpy((char*)entry.access.str, str, sizeof(entry.access.str));
+    entry.access.str[sizeof(entry.access.str) - 1] = 0;
+
+    mtrace_entry_register(&entry.h, mtrace_entry_host, sizeof(entry));
+}
+
+static inline void mtrace_call_set(unsigned long b, uint64_t cpu)
+{
+    volatile struct mtrace_host_entry entry;
+
+    entry.host_type = b ? mtrace_call_set_cpu : mtrace_call_clear_cpu;
+    entry.call.cpu = cpu;
+
+    mtrace_entry_register(&entry.h, mtrace_entry_host, sizeof(entry));
+}
+
+static inline void mtrace_enable_count(void)
+{
+    volatile struct mtrace_host_entry entry;
+
+    entry.host_type = mtrace_enable_count_cpu;
+    mtrace_entry_register(&entry.h, mtrace_entry_host, sizeof(entry));
+}
+
+static inline void mtrace_disable_count(void)
+{
+    volatile struct mtrace_host_entry entry;
+
+    entry.host_type = mtrace_disable_count_cpu;
+    mtrace_entry_register(&entry.h, mtrace_entry_host, sizeof(entry));
+}
+
+static inline void mtrace_label_register(mtrace_label_t type,
+					 const void * addr, 
+					 unsigned long bytes, 
+					 const char *str, 
+					 unsigned long n,
+					 unsigned long call_site)
+{
+    volatile struct mtrace_label_entry label;
+
+    if (n >= sizeof(label.str))
+	n = sizeof(label.str) - 1;
+
+    label.label_type = type;
+    memcpy((void *)label.str, str, n);
+    label.str[n] = 0;
+    label.guest_addr = (uintptr_t)addr;
+    label.bytes = bytes;
+    label.pc = call_site;
+
+    mtrace_entry_register(&label.h, mtrace_entry_label, sizeof(label));
+}
+
+static inline void mtrace_segment_register(unsigned long baseaddr,
+					   unsigned long endaddr,
+					   mtrace_label_t type,
+					   unsigned long cpu)
+{
+    volatile struct mtrace_segment_entry entry;
+    entry.baseaddr = baseaddr;
+    entry.endaddr = endaddr;
+    entry.object_type = type;
+    entry.cpu = cpu;
+
+    mtrace_entry_register(&entry.h, mtrace_entry_segment, sizeof(entry));
+}
+
+static inline void mtrace_fcall_register(unsigned long tid,
+					 unsigned long pc,
+					 unsigned long tag,
+					 unsigned int depth,
+					 mtrace_call_state_t state)
+{
+    volatile struct mtrace_fcall_entry entry;
+    entry.tid = tid;
+    entry.pc = pc;
+    entry.tag = tag;
+    entry.depth = depth;
+    entry.state = state;
+
+    mtrace_entry_register(&entry.h, mtrace_entry_fcall, sizeof(entry));
+}
+
+static inline void mtrace_lock_register(unsigned long pc,
+                                        void *lock,
+					const char *str,
+					mtrace_lockop_t op,
+					unsigned long is_read)
+{
+    volatile struct mtrace_lock_entry entry;
+    entry.pc = pc;
+    entry.lock = (unsigned long)lock;
+    strncpy((char*)entry.str, str, sizeof(entry.str));
+    entry.str[sizeof(entry.str)-1] = 0;
+    entry.op = op;
+    entry.read = is_read;
+
+    mtrace_entry_register(&entry.h, mtrace_entry_lock, sizeof(entry));
+}
+
+static inline void mtrace_task_register(unsigned long tid,
+					unsigned long tgid,
+					mtrace_task_t type,
+					const char *str)
+{
+    volatile struct mtrace_task_entry entry;
+    entry.tid = tid;
+    entry.tgid = tgid;
+    entry.task_type = type;
+    strncpy((char*)entry.str, str, sizeof(entry.str));
+    entry.str[sizeof(entry.str) - 1] = 0;
+
+    mtrace_entry_register(&entry.h, mtrace_entry_task, sizeof(entry));
+}
+
+static inline void mtrace_sched_record(unsigned long tid)
+{
+    volatile struct mtrace_sched_entry entry;
+    entry.tid = tid;
+
+    mtrace_entry_register(&entry.h, mtrace_entry_sched, sizeof(entry));
+}
+
+static inline void mtrace_appdata_register(struct mtrace_appdata_entry *appdata)
+{
+    volatile struct mtrace_appdata_entry entry;
+    memcpy((void *)&entry, appdata, sizeof(entry));
+
+    mtrace_entry_register(&entry.h, mtrace_entry_appdata, sizeof(entry));
+}
+
+static inline void mtrace_avar_register(int is_write, const char *avar)
+{
+    volatile struct mtrace_avar_entry entry;
+
+    entry.write = is_write;
+    strncpy((char*)entry.name, avar, sizeof(entry.name));
+
+    mtrace_entry_register(&entry.h, mtrace_entry_avar, sizeof(entry));
+}
+
+static inline void mtrace_ascope_register(int is_exit, const char *name)
+{
+    volatile struct mtrace_ascope_entry entry;
+
+    entry.exit = is_exit;
+    strncpy((char*)entry.name, name, sizeof(entry.name));
+
+    mtrace_entry_register(&entry.h, mtrace_entry_ascope, sizeof(entry));
+}
+
+static inline void mtrace_gc_register(uint64_t base, uint64_t nbytes,
+                                      const char* name, int is_gc)
+{
+    volatile struct mtrace_gc_entry entry;
+
+    entry.base = base;
+    entry.nbytes = nbytes;
+    strncpy((char*)entry.name, name, sizeof(entry.name));
+    entry.gc = is_gc;
+
+    mtrace_entry_register(&entry.h, mtrace_entry_gc, sizeof(entry));
+}
+
+static inline void mtrace_gcepoch_register(int is_begin)
+{
+    volatile struct mtrace_gcepoch_entry entry;
+
+    entry.begin = is_begin;
+
+    mtrace_entry_register(&entry.h, mtrace_entry_gcepoch, sizeof(entry));
+}
+
+#endif /* QEMU_MTRACE */
+#endif /* _MTRACE_MAGIC_H_ */
+
+
+
+------------------------------------------------------
+
+
+xv6 with mtrace
+------------------------
+kernel/vm.cc
+------------------------
+int
+pagefault(vmap *vmap, uptr va, u32 err)
+{
+#if MTRACE
+  mt_ascope ascope("%s(%p,%#lx)", __func__, vmap, va);
+  mtwriteavar("pte:%p.%#lx", vmap, va / PGSIZE);
+#endif
+
+pagelookup(vmap* vmap, uptr va)
+{
+#if MTRACE
+  mt_ascope ascope("%s(%#lx)", __func__, va);
+  mtwriteavar("pte:%p.%#lx", vmap, va / PGSIZE);
+  
+kernel/trap.cc 
+----------------------------
+do_pagefault(struct trapframe *tf)
+{
+...  
+#if MTRACE
+      mtstop(myproc());
+      if (myproc()->mtrace_stacks.curr >= 0)
+        mtresume(myproc());
+#endif
+
+trap(
+{
+...
+#if MTRACE
+  if (myproc()->mtrace_stacks.curr >= 0)
+    mtpause(myproc());
+  mtstart(trap, myproc());
+  // XXX mt_ascope ascope("trap:%d", tf->trapno);
+#endif
+
+...
+#if MTRACE
+  mtstop(myproc());
+  if (myproc()->mtrace_stacks.curr >= 0)
+    mtresume(myproc());
+#endif
+
+kernel/sysproc.cc
+---------------------
+sys_mmap(
+...
+#if MTRACE
+  if (addr != 0) {
+    for (uptr i = start / PGSIZE; i < end / PGSIZE; i++)
+      mtwriteavar("pte:%p.%#lx", myproc()->vmap, i);
+  }
+#endif
+...
+
+sys_munmap(userptr<void> addr, size_t len)
+{
+#if MTRACE
+  mt_ascope ascope("%s(%p,%#lx)", __func__, addr.unsafe_get(), len);
+  for (uptr i = addr / PGSIZE; i < PGROUNDUP(addr + len) / PGSIZE; i++)
+    mtwriteavar("pte:%p.%#lx", myproc()->vmap, i);
+#endif
+
+
+kernel/proc.cc
+--------------------------------
+proc::alloc(void)
+{
+  char *sp;
+  proc* p;
+
+  p = new proc(xnspid->allockey());
+  if (p == nullptr)
+    throw_bad_alloc();
+
+  p->cpuid = mycpu()->id;
+#if MTRACE
+  p->mtrace_stacks.curr = -1;
+#endif
+
+kernel/proc.hh
+-------------------------------
+// Per-process, per-stack meta data for mtrace
+#if MTRACE
+#define MTRACE_NSTACKS 16
+#define MTRACE_TAGSHIFT 24
+#if NCPU > 256
+#error Oops -- decrease MTRACE_TAGSHIFT
+#endif
+struct mtrace_stacks {
+  int curr;
+  unsigned long tag[MTRACE_NSTACKS];
+};
+#endif
+
+in proc struct {
+ADD
+#if MTRACE
+  struct mtrace_stacks mtrace_stacks;
+#endif
+
+
+include/kmtrace.hh
+----------------------------------
+DEFINE
+mtstart
+mtstop
+mtpause
+mtresmue
+mtreadavar
+mtwriteavar
+
+class mt_ascope //record info
+
+// Tell mtrace to start/stop recording call and ret
+#define mtrec() mtrace_call_set(1, ~0ull)
+#define mtign() mtrace_call_set(0, ~0ull)
+
+
+
+libutil/include/mtrace.h
+---------------------------------------
+// Tell mtrace about memory allocation
+#define mtlabel(type, addr, bytes, str, n) \
+  mtrace_label_register(type, addr, bytes, str, n, RET_IP())
+#define mtunlabel(type, addr) \
+  mtrace_label_register(type, addr, 0, nullptr, 0, RET_IP())
+
+// Tell mtrace about locking
+#define mtlock(ptr) \
+  mtrace_lock_register(RET_IP(), ptr, lockname(ptr), mtrace_lockop_acquire, 0)
+#define mtacquired(ptr) \
+  mtrace_lock_register(RET_IP(), ptr, lockname(ptr), mtrace_lockop_acquired, 0)  
+#define mtunlock(ptr) \
+  mtrace_lock_register(RET_IP(), ptr, lockname(ptr), mtrace_lockop_release, 0)
+
+// Enable/disable all mtrace logging
+#define mtenable(name)  mtrace_enable_set(mtrace_record_movement, name)
+#define mtenable_type(type, name)  mtrace_enable_set(type, name)
+#define mtdisable(name) mtrace_enable_set(mtrace_record_disable, name)
+
+// Log the number of operations 
+static inline void mtops(uint64_t n)
+{
+  struct mtrace_appdata_entry entry;
+  entry.u64 = 0;
+  mtrace_appdata_register(&entry);
+}
+
+static inline void mtgcregister(void* base, uint64_t nbytes, const char* name)
+{
+  mtrace_gc_register((uint64_t) base, nbytes, name, 0);
+}
+
+static inline void mtgcdead(void* base)
+{
+  mtrace_gc_register((uint64_t) base, 0, "", 1);
+}
+
+static inline void mtrcubegin()
+{
+  mtrace_gcepoch_register(1);
+}
+
+static inline void mtrcuend()
+{
+  mtrace_gcepoch_register(0);
+}
+
+=======================================================================================
+linux-3.8: didn't finish 
+============
+在mtrace.h
+
+find ../scale-linux -name "*.[ch]" -exec grep -Hn mtrace_magic {} \;
+../scale-linux/arch/x86/include/asm/mtrace-magic.h:307:static inline void mtrace_magic(unsigned long ax, unsigned long bx, 
+../scale-linux/arch/x86/include/asm/mtrace-magic.h:318:void mtrace_magic(unsigned long a0, unsigned long a1,
+../scale-linux/arch/x86/include/asm/mtrace-magic.h:328:    mtrace_magic(MTRACE_ENTRY_REGISTER, (unsigned long)h,
+
+
+
+chy@chyhome-PC:~/mit/sck/mtrace$ find ../scale-linux -name "*.[ch]" -exec grep -Hn mtrace_task_register {} \;
+../scale-linux/arch/x86/include/asm/mtrace-magic.h:439:static inline void mtrace_task_register(unsigned long tid,
+
+
+linux with mtrace support  (based on commit 3f4e5aacf754bad84dd54826ea3a77983e201c80 (after linux-3.8))
+--------------------------------
+ADD 
+arch/x86/include/asm/mtrace-magic.h
+include/linux/mtrace.h
+mm/mtrace.c
+
+
+MODIFY
+
+arch/x86/Kconfig
+---
+config MTRACE
+	def_bool y
+	depends on 64BIT
+
+
+include/linux/sched.h
+----
+#ifdef CONFIG_MTRACE
+	struct mtrace_call_stack mtrace_stack;
+#endif
+
+init/main.c
+----
+IN mm_init funciton
+add:
+        mtrace_init();
+        
+mm/Makefile
+---
+obj-$(CONFIG_MTRACE) += mtrace.o
+
+------------------------------------------
+mtrace is a kernel moudle
+
+control logic
+
+mtrace_init 
+   --> register_trace_kmalloc
+      -->mtrace_label_register
+         -->mtrace_entry_register
+            -->mtrace_magic(MTRACE_ENTRY_REGISTER, (unsigned long)h,type, len, 0, 0);
+            
+                       
+------------------------------------
+
+old mtrace based on 2.6.39
+commit 6f25ef7aabba35ff81d73785eeb16198075757e1
+Merge: 7596777 61c4f2c
+Author: Silas Boyd-Wickizer <sbw@wether.csail.mit.edu>
+Date:   Tue Jun 14 20:28:37 2011 -0400
+
+    Merge commit 'v2.6.39' into mtrace
+
+
+arch/x86/include/asm/mtrace-magic.h
+-----------------
+more functions
+
+
+
+----------------------------------
+arch/x86/kernel/entry_64.S
+
+system_call_fastpath:
+	cmpq $__NR_syscall_max,%rax
+	ja badsys
+	movq %r10,%rcx
+//----------------------------------------
+#ifdef CONFIG_MTRACE
+	movq sys_call_table(,%rax,8), %rdi
+	call mtrace_start_entry
+	RESTORE_ARGS 0, -ARG_SKIP, 1
+	movq %r10, %rcx
+	call *sys_call_table(,%rax,8)  # XXX:    rip relative
+	movq %rax,RAX-ARGOFFSET(%rsp)
+	call mtrace_end_entry
+//----------------------------------------
+#else
+	call *sys_call_table(,%rax,8)  # XXX:	 rip relative
+	movq %rax,RAX-ARGOFFSET(%rsp)
+#endif
+
+
+ENTRY(stub_execve)
+	CFI_STARTPROC
+	addq $8, %rsp
+	PARTIAL_FRAME 0
+	SAVE_REST
+	FIXUP_TOP_OF_STACK %r11
+	movq %rsp, %rcx
+	call sys_execve
+	RESTORE_TOP_OF_STACK %r11
+	movq %rax,RAX(%rsp)
+	RESTORE_REST
+//---------------------------------------
+#ifdef CONFIG_MTRACE
+	call mtrace_end_entry
+#endif
+//---------------------------------------
+
+
+
+ENTRY(stub_rt_sigreturn)
+	CFI_STARTPROC
+	addq $8, %rsp
+	PARTIAL_FRAME 0
+	SAVE_REST
+	movq %rsp,%rdi
+	FIXUP_TOP_OF_STACK %r11
+	call sys_rt_sigreturn
+	movq %rax,RAX(%rsp) # fixme, this could be done at the higher layer
+	RESTORE_REST
+//----------------------------------------------
+#ifdef CONFIG_MTRACE
+	call mtrace_end_entry
+#endif
+//----------------------------------------------
+
+
+
+
+/*
+ * Interrupt entry/exit.
+ *
+ * Interrupt entry points save only callee clobbered registers in fast path.
+ *
+ * Entry runs with interrupts off.
+ */
+
+/* 0(%rsp): ~(interrupt number) */
+	.macro interrupt func
+	/* reserve pt_regs for scratch regs and rbp */
+	subq $ORIG_RAX-RBP, %rsp
+	CFI_ADJUST_CFA_OFFSET ORIG_RAX-RBP
+	call save_args
+	push %rdi
+	mov $\func, %rdi
+//--------------------------------
+#ifdef CONFIG_MTRACE
+	call mtrace_start_do_irq
+#endif
+//-------------------------------
+	pop %rdi
+	PARTIAL_FRAME 0
+	call \func
+	.endm
+	
+	
+/*
+ * Interrupt entry/exit should be protected against kprobes
+ */
+	.pushsection .kprobes.text, "ax"
+	/*
+	 * The interrupt stubs push (~vector+0x80) onto the stack and
+	 * then jump to common_interrupt.
+	 */
+	.p2align CONFIG_X86_L1_CACHE_SHIFT
+common_interrupt:
+	XCPT_FRAME
+	addq $-0x80,(%rsp)		/* Adjust vector to [-256,-1] range */
+	interrupt do_IRQ
+	/* 0(%rsp): old_rsp-ARGOFFSET */
+ret_from_intr:
+//--------------------------------
+#ifdef CONFIG_MTRACE
+	call mtrace_end_do_irq
+#endif
+//--------------------------------
+
+//----------------------------------
+#ifdef CONFIG_MTRACE
+ENTRY(mtrace_do_page_fault)
+	pushq %rdi
+	pushq %rsi
+	movq $do_page_fault, %rdi
+	call mtrace_start_do_page_fault
+	popq %rsi
+	popq %rdi
+	
+	call do_page_fault
+
+	movq $do_page_fault, %rdi
+	call mtrace_end_do_page_fault
+
+	ret
+#endif
+//-----------------------------------
+
+//-------------------------------------------------
+#ifdef CONFIG_MTRACE
+errorentry page_fault mtrace_do_page_fault
+//-------------------------------------------------
+#else
+errorentry page_fault do_page_fault
+#endif
+
+
+
+
+/arch/x86/kernel/irq_64.c
+---------------------------------------------
+asmlinkage void do_softirq(void)
+{
+	__u32 pending;
+	unsigned long flags;
+
+	if (in_interrupt())
+		return;
+
+	local_irq_save(flags);
+	pending = local_softirq_pending();
+	/* Switch to interrupt stack */
+	if (pending) {
+//-----------------------------------------------------------
+		mtrace_start_do_irq((unsigned long)&call_softirq);
+		call_softirq();
+		mtrace_end_do_irq();
+//----------------------------------------------------------
+		WARN_ON_ONCE(softirq_count());
+	}
+	local_irq_restore(flags);
+}
+
+
+
+arch/x86/kernel/setup_percpu.c
+--------------------------------
+MODIFY void __init setup_per_cpu_areas(void) FUNCTION
+....
+	for_each_possible_cpu(cpu) {
+		per_cpu_offset(cpu) = delta + pcpu_unit_offsets[cpu];
+//------------------------------------------------------
+		mtrace_segment_register(per_cpu_offset(cpu), 
+					per_cpu_offset(cpu) + 
+					(unsigned long)__per_cpu_end, 
+					mtrace_label_percpu, cpu);
+//-----------------------------------------------------
+...
+
+
+
+
+arch/x86/Makefile
+---------------------
+ifeq ($(CONFIG_MTRACE),y)
+mscan.syms: vmlinux
+	$(Q)echo "  NM      $@"
+	$(Q)$(NM) -S $< > $@
+
+mscan.kern: vmlinux
+	$(Q)echo "  CP      $@"
+	$(Q)cp $< $@
+
+mscan.bzImage: bzImage
+	$(Q)echo "  CP      $@"
+	$(Q)cp arch/x86/boot/bzImage $@
+
+mtrace: mscan.syms mscan.kern mscan.bzImage
+PHONY += mtrace
+endif
+
+
+
+fs/exec.c
+-----------------------------
+MODIFY FUNCTION do_execve()
+
+	mtrace_update_task(current);
+	
+	
+
+include/linux/init_task.h
+-----------------------------
+INIT_TASK is used to set up the first task table, touch at
+ * your own risk!. Base=0, limit=0x1fffff (=2MB)
+ADD 
+	INIT_MTRACE							\
+	
+	
+	
+
+
+
+include/linux/lockdep.h
+-------------------------------
+...
+#elif defined(CONFIG_MTRACE) && defined(CONFIG_LOCKDEP)
+
+extern void mtrace_lock_acquired(struct lockdep_map *lock, unsigned long ip);
+
+#define lock_contended(lockdep_map, ip) do {} while (0)
+#define lock_acquired(lockdep_map, ip) mtrace_lock_acquired(lockdep_map, ip)
+
+#define LOCK_CONTENDED(_lock, try, lock) 			\
+do {								\
+   	lock(_lock);						\
+	lock_acquired(&(_lock)->dep_map, _RET_IP_);		\
+} while (0)
+
+#else /* defined(CONFIG_MTRACE) && defined(CONFIG_LOCKDEP) */
+
+#ifdef CONFIG_MTRACE
+#define lock_acquire(lock, subclass, trylock, read, check, nest_lock, ip) \
+        mtrace_lock_acquire(lock, ip, read)
+#define lock_release(lock, nested, ip) \
+        mtrace_lock_release(lock, ip)
+
+extern void mtrace_lock_acquire(struct lockdep_map *lock, unsigned long ip,
+                                int read);
+
+extern void mtrace_lock_release(struct lockdep_map *lock,
+                                unsigned long ip);
+
+#define spin_acquire(l, s, t, i)		mtrace_lock_acquire(l, i, 0)
+#define spin_acquire_nest(l, s, t, n, i)	mtrace_lock_acquire(l, i, 0)
+#define spin_release(l, n, i)			mtrace_lock_release(l, i)
+#define rwlock_acquire(l, s, t, i)		mtrace_lock_acquire(l, i, 0)
+#define rwlock_acquire_read(l, s, t, i)	        mtrace_lock_acquire(l, i, 1)
+#define rwlock_release(l, n, i)		        mtrace_lock_release(l, i)
+#define mutex_acquire(l, s, t, i)		mtrace_lock_acquire(l, i, 0)
+#define mutex_release(l, n, i)			mtrace_lock_release(l, i)
+#define rwsem_acquire(l, s, t, i)		mtrace_lock_acquire(l, i, 0)
+#define rwsem_acquire_read(l, s, t, i)	        mtrace_lock_acquire(l, i, 1)
+#define rwsem_release(l, n, i)			mtrace_lock_release(l, i)
+#define lock_map_acquire(l)		        mtrace_lock_acquire(l, _THIS_IP_, 0)
+#define lock_map_acquire_read(l)	        mtrace_lock_acquire(l, _THIS_IP_, 1)
+#define lock_map_release(l)			mtrace_lock_release(l, _THIS_IP_)
+#else /* !CONFIG_MTRACE */
+#else /* defined(CONFIG_MTRACE) && defined(CONFIG_LOCKDEP) */
+
+
+
+kernel/fork.c
+---------------------------------
+IN FUNCTION copy_process
+add a line
+	mtrace_init_task(p);
+	
+	
+kernel/sched.c
+--------------------------------
+IN FUNCTION context_switch(
+
+#ifndef CONFIG_MTRACE
+	trace_sched_switch(prev, next);
+#endif
+
+
+IN FUNCTION __sched schedule
+add 
+    mtrace_start_do_irq((unsigned long)&schedule);
+    mtrace_end_do_irq();
+    
+IN FUNCTION init_idle
+ADD
+    	mtrace_init_task(idle);
+    	
+    	
+kernel/workqueue.c
+--------------------------------
+IN FUNCTION  worker_thread(
+ADD
+    mtrace_start_entry((unsigned long)worker_thread);
+    mtrace_end_entry();
