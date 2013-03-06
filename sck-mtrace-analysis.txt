@@ -41,8 +41,9 @@ main
   -->process_log(log);
 --------------------
 与syscall相关的有
-dissys.hh
+dissys.hh   meaning???
 sysaccess.hh
+
 
 --------------------
 与false sharing相关
@@ -65,6 +66,16 @@ addrs.hh
 与check_test_case相关
 checktest.hh
 
+
+--------------------------
+有set associate cache 相关
+cacheassoc.hh
+
+在CacheSet中的add_access中，一个set内采用的是FIFO替换算法，可以改为LRU算法 
+可以修改配置，比如nways, nsets, cacheline size等，使得可以更方便地测试代码
+感觉是模拟了一个smp，每个cpu有自己的cache，但没有考虑是否其他cpu上cache有相同数据.
+没有cache 一致性协议，即实现的是share nothing/no consistent cache.
+比较比较简单的cache模拟。
 
 ======================
 修改qemu部分

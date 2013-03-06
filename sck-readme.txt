@@ -1,3 +1,52 @@
+03/06/2013
+=================================
+xv6 analysis
+
+在kvm下也可以运行for qemu的kernel.elf,这是好消息，可以测试测试。
+按道理这就可以在40 core机器上测试了。
+
+修改dirbench，让它可以在linux和mtrace下运行。
+
+分析了一下现有的cache的模拟实现，思考一下如何在mtrace下实现一个简单的多核cache模拟，
+希望可以分析出
+用户态<-->内核态来回切换，导致cache污染或冲突的问题。
+
+
+下面还需尝试直接在硬件上运行？ ipxe方式？
+
+计划，实现一个syscall的方面，
+
+
+把xv6 mtrace自己编译和使用，进一步熟悉
+在kernel目录下有一个文件incbin.S
+----------------------------------
+#define __str_1(x...)     #x
+#define __str(x...)       __str_1(x)
+
+#define include_bin(file, name) \
+  .globl _##name##_start; \
+  _##name##_start:; \
+  .incbin __str(MAKE_OUT/file); \
+  _##name##_end:; \
+  .globl _##name##_size; \
+  _##name##_size:; \
+    .quad _##name##_end - _##name##_start
+
+.section .init_rodata, "a", @progbits
+include_bin(kernel/initcode,initcode)
+include_bin(kernel/bootother,bootother)
+include_bin(fs.img,fs_img)
+../kernel/incbin.S (END)
+------------------------------------
+直接把fs.img放进去了，导致kernel.elf巨大
+其实也就是把kernel.elf中嵌入了文件，使得整个文件系统都在内存中
+
+
+系统调用列表是通过tools/syscalls.py实现的
+python tools/syscalls.py --kvectors kernel/*.cc > o.qemu/kernel/sysvectors.cc.tmp
+
+
+
 03/05/2013
 =================================
 xv6 analysis

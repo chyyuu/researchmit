@@ -1,0 +1,6 @@
+old man: Silas Boyd-Wickizer
+vm man: Austin Clements
+big man: Cody Cutler ccutler@mit.edu
+Southeast: Rasha Eqbal
+DS-TA: Neha Narula 
+Xi Wang, Haogang Chen, Yandong Mao
