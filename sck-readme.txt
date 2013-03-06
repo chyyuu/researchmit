@@ -1,3 +1,93 @@
+03/05/2013
+=================================
+xv6 analysis
+
+kmtrace.hh
+mtstart被调用的地方
+idle.cc::mtstart(idleloop,myproc())         //98
+proc.cc::mtstart(forkret,myproc())          //136
+proc.cc::mtstart(trap,myproc())             //242
+proc.cc::mtstart(fn,myproc())               //569
+syscall.cc::mtstart(syscalls[num],myproc()) //80
+trap.cc::mtstart(trap,myproc())             //40, 49, 161
+
+mtstop被调用的地方
+proc.cc::mtstop(myproc())           //138, 238
+sched.cc::mtstop(prev)              //300
+syscall.cc::mtstop(myproc())        //86
+trap.cc::mtstart(myproc())          //67, 81, 316
+
+mtpause被调用的地方
+sched.cc::mtpause(prev)             //302
+trap.cc::mtpause(myproc())          //160
+
+
+mtresume被调用的地方
+sched.cc::mtresume(next)             //313
+trap.cc::mtresume(myproc())          //69, 318
+
+上诉代码将调用 mtrace_entry_register ()
+static inline void mtrace_entry_register(volatile struct mtrace_entry_header *h,
+					 unsigned long type,
+					 unsigned long len)
+{
+    mtrace_magic(MTRACE_ENTRY_REGISTER, (unsigned long)h,
+		 type, len, 0, 0);
+}
+
+最终调用到mtrace-magic.h::mtrace_magic
+/*
+ * Magic instruction for calling into mtrace in QEMU.
+ */
+static inline void mtrace_magic(unsigned long ax, unsigned long bx, 
+				unsigned long cx, unsigned long dx,
+				unsigned long si, unsigned long di)
+{
+    __asm __volatile("xchg %%bx, %%bx" 
+		     : 
+		     : "a" (ax), "b" (bx), 
+		       "c" (cx), "d" (dx), 
+		       "S" (si), "D" (di));
+}
+
+然后，在qemu中的target-i386/translate.c::disas_insn::L5300中
+        do_xchg_reg:
+	    /* the instruction for calling into memory trace code? */
+	    if (reg == R_EBX && rm == R_EBX)
+		gen_helper_mtrace_inst_exec();
+            gen_op_mov_TN_reg(ot, 0, reg);
+            gen_op_mov_TN_reg(ot, 1, rm);
+            gen_op_mov_reg_T0(ot, rm);
+            gen_op_mov_reg_T1(ot, reg);
+可以看到调用了gen_helper_mtrace_inst_exec函数
+
+位于mtrace/target-i386/op_helper.c::helper_mtrace_inst_exec(void)
+    void helper_mtrace_inst_exec(void)
+    {
+        mtrace_inst_exec(EAX, EBX, ECX, EDX, ESI, EDI);
+    }
+可以看出 
+EAX=MTRACE_ENTRY_REGISTER
+EBX=struct mtrace_entry_header *h
+ECX=type
+EDX=len
+ESI=EDI= 0
+
+并进一步调用  mtrace_call[a0](a1, a2, a3, a4, a5);
+
+查看：在mtrace/mtrace.c中
+static void (*mtrace_call[])(target_ulong, target_ulong, target_ulong,
+			     target_ulong, target_ulong) = 
+{
+    [MTRACE_ENTRY_REGISTER]	= mtrace_entry_register,
+};
+
+所以页就是调用了
+mtrace_entry_register（h, type, len, 0, 0）
+这个函数是一个总控函数
+把gust soft的指令指出的entry拷贝到host中来，然后开始分析。
+
+
 03/04/2013
 ==================================
 new idea:

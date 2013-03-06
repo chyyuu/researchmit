@@ -1,3 +1,5 @@
+
+
 ======================================================================================
 qemu add mtrace
 
@@ -6,6 +8,67 @@ mtrace_tools/*
 mtrace-magic.h
 mtrace.[ch] //main part
 
+==========================
+anaysis mtrace-tools/*
+------------
+mscan.cc
+
+main
+  --> init_static_syms(sym_file)
+      扫描 scan.sym，把其中的变量（包括函数地址等）信息存储到mtrace_label_map中，把per_cpu变量信息存储到percpu_labels中，struct都是mtrace_label_entry
+  
+  -->init_entry_alloc(); //nothing
+    
+  -->init_handlers();
+     设置针对不同mtrace_entry（包括 host/appdata/fcall/label/segment/machine）的handler(Default(Host/AppData/Fcall/Label/Segment/Machine)Handler),
+     针对mtrace_entry_call/fcall，添加call_trace handler
+     针对distinct_sys，添加 面向 mtrace_entry_access/fcall的handler  dissys
+     针对 lock，添加面向 SerialSections的handler sersecs
+     针对 false_sharing，添加面向false_sharing的handler false_sharing
+     针对 strack_trace_pc，添加面向mtrace_entry_access的handler call_trace_filter
+     针对 syscall_accesses，添加面向mtrace_entry_access的handler syscallaccesses和sys_accesses_pc
+     针对 abstract_scopes和unexpected_sharing，添加handler ashare 
+     针对 summary，添加handler DefaultSummary
+     针对 shared_addresses，添加handler addrs
+     针对 check_testcases，添加handler ct (check_testcases)
+     针对 all_sharing，添加handler as
+     针对 cache_assoc 添加handler ca
+     针对 sbw0，添加handler sbw0
+     针对 check_gc，添加hanlder check_gc
+     
+     
+     
+  -->process_log(log);
+--------------------
+与syscall相关的有
+dissys.hh
+sysaccess.hh
+
+--------------------
+与false sharing相关
+false.hh
+
+----------------------
+sersec.cc //与lock相关
+
+---------------------
+与testcase相关
+
+---------------------
+与abstrace_scope相关
+
+----------------------
+与shared address相关
+addrs.hh
+
+----------------------
+与check_test_case相关
+checktest.hh
+
+
+======================
+修改qemu部分
+======================
 Changed Files
 mtrace/target-i386/cpu.h::cpu_get_tb_cpu_state(
 -----------------
