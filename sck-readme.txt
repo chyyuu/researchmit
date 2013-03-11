@@ -1,3 +1,118 @@
+03//11/2013
+====================
+find&fix a little bug in kalloc.ccc with the help of austin
+find another bug related with mem leak. try to find the root cause.
+
+try to find the scalability problem of syscall implement.
+
+begin the port work of ucore amd64-smp
+
+
+03/07/2013
+=================================
+CPU Core-i73610QM, L3 6MB, 12-way, Cache Line 64B
+num of set = 6M/(12*64)=2^13
+64=2^6
+x-6+1=13
+x=18
+size of page=4K   y=12
+x-y+1=7
+number of page color =2^7=128
+
+
+E7-8870 10 cores L3 30MB cache 
+
+读FOS的master thesis paper "Message Passing in a Factored OS" http://dspace.mit.edu/bitstream/handle/1721.1/66407/755082145.pdf
+take care of the 
+design of user-level message passing  (barrelfish)
+AND
+design of kernel-level message passing  (L4)
+
+读 Towards Practical Page Coloring-based Multi-core Cache Management （eurosys 2009）
+
+This paper proposes a hot-page coloring approach in
+which cache mapping colors are only enforced on a small
+set of frequently accessed (or hot) pages for each process
+
+读ULCC: A User-Level Facility for Optimizing
+Shared Cache Performance on Multicores
+
+读Operating system techniques for reducing processor state pollution ph.d thesis
+
+
+One source of inefficiency that affects the performance of modern processor caches is cache
+pollution. Cache pollution can be defined as the displacement of a cache element by a less useful
+one.
+
+
+User Messaging Optimizations
+--------------------------
+Barrelfish URPC implemention is particularly efficient because it uses a scheme that inval-
+idates only a single cache line for sufficiently small messages. This is achieved by
+sending data in cache-line sized chunks and reserving the last few bytes for a genera-
+tion number. 
+ 
+Memory Remapping
+----------------
+for large buffer transfer
+
+
+Hardware Message Passing
+-----------------------
+Tile64 and intel's SCC
+
+
+The first is competition and favors running the OS and the
+application on separate cores. The second is cooperation and favors running the OS
+and application on the same core.
+
+ 
+Specifically, because each core is dedicated
+to a specific task (belonging to either the application or the OS,) the working set size
+on any given core is reduced to better fit within the capacity of the local cache as
+well as other architectural resources 
+======================================== 
+------------------------------------------ 
+bin目录下有许多小bench. 有80个core上标志的是mapbench 和 mailbench
+bench：象是调用其他bench执行的一个总bench
+benchhdr: 打印基本内核和配置信息的一个文件，不算bench
+fstest:像是用来分析commutativity的，执行了大量的各种open/read/write/close等文件操作
+
+countbench: Benchmark physical page reference counting in the VM system by
+            repeatedly duplicating and unmapping a physical page in several
+            threads.
+crwpbench:  Concurrent reading and writing of a pipe.  Forks n processes with one shared
+            pipe.  Even process write a character to the pipe, odd ones read the character. 
+allocbench: 许多线程不停地mmap
+dirbench: 许多线程不停地open/close 不同的file, 但是一个dir
+filebench：许多进程不停的open/read/write同一文件，但r/w的是不同的文件地方的内容
+forkexecbench: 创建多个进程执行，即多次执行 fork + execv
+gcbench：多进程测试gc,还不够了解，用到了 /dev/sampler ，好像还有/dev/kstat，pmc等都是用于xv6性能统计的
+
+linkbench: Benchmark concurrent stats and links/unlinks.  Ideally, this will
+           move a single cache line between stat and link: the cache line for
+           the link count.  Our hypothesis is that this is sufficient to limit
+           scalability, while tweaking stat to not return the link count will
+           lead to perfect scalability of stat.
+mailbench: usage: %s n-server-threads n-client-procs nmsg filter deliver", 测试网络的scalability
+           多次 recvfrom/sendto server threads<-->client processes.
+           
+mapbench: 在80个core下做local/batch/global的map/unmap看性能情况，需要再问问austin
+
+schedbench: 简单的基于futex（Fast Userspace muTexes）的多线程访问，查看sched的性能
+vmimbalbench: 内存alloc和free操作 （比较新）
+        "usage: %s [npages] [consumer,[producers...]]...\n%s
+        // $ vmimbalbench 1000000 0,1
+        // CPU 0 allocates 4GB, which CPU 1 frees.
+        // $ vmimbalbench 1000000 0,8,9,10 16,24,25,26
+        // CPU 0 allocates 4GB of pages, which are freed at CPUs 8-10. Likewise with
+        // 16 and 24-26.
+        // $ vmimbalbench 1000000 0,7 7,0
+        // CPU 0 allocates 4GB of pages which are freed at CPU 7. Simultaneously, CPU
+        // 7 allocates 4GB of pages which are freed at CPU 0.
+
+
+           
 03/06/2013
 =================================
 xv6 analysis
@@ -816,35 +931,4 @@ Problem:
 3 content of lb.hh ( balance_pool  used in sched.cc) rnd.hh  AND sched using steal mechanism or some balance struct?
 
 
-----------------------------------------
-syscall
 
-user interface
-o.qemu/lib/sysstubs.S  produced by tools/syscalls.py
-
-kernel interface
-sysentry :: kernel/trapasm.S
-     sysentry_c :: trap.cc
-        syscall :: syscall.cc
-          sys_write
-              getfile
-                ...
-
-proc
-   filetable *ftable
-   sref<inode> cwd;             // Current directory
-   sref<mnode> cwd_m;           // Current directory
-
-class mdir;
-class mfile;
-class mdev;
-class msock;
-mfile mnode
-----------------------------------------
-FS
-
-ref.hh
-sref class : a more RCU-friendly referenced base class
-
-
-nstbl?
