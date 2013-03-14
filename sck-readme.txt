@@ -1,3 +1,10 @@
+03/14/2013
+===================
+这两天，进一步阅读代码（主要是初始化部分，比较复杂），fix了另外一个bug（makeifle中的）。
+找到了out of memory的问题，但没有fix,因为需要比较深入地了解fs的实现才行。
+用c++写os，让我理解得很费劲。 :(
+争取抓紧深入理解xv6，测试syscall情况。带学生做好大实验。
+
 03//11/2013
 ====================
 find&fix a little bug in kalloc.ccc with the help of austin
@@ -6,6 +13,8 @@ find another bug related with mem leak. try to find the root cause.
 try to find the scalability problem of syscall implement.
 
 begin the port work of ucore amd64-smp
+
+
 
 
 03/07/2013
