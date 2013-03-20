@@ -1,3 +1,126 @@
+03/20/2013
+===================
+进一步阅读radixVM论文，了解其实现细节
+radixtree, refcache, tlb shutdown, 定位到code！！！
+
+在trap.cc::initmsr函数中
+cpu0-(unknown): panic: Cannot control hardware prefetcher for this CPU model
+可以把panic 改为cprintf
+与austin讨论，这是由于E7 cpu一般enable prefetcher
+这样取出的是128B，而不是通常的64B，这样有可能造成false sharing, 在linkbenc，曾经测出5 times 性能差距
+
+austin 找到了qemu multiboot的一个bug, 这样我就可以在qemu or kvm中得到正确的memory了
+方法：按照邮件内容修改multiboot.S 编译，安装，但是最后还是要手动地把这个文件拷到对应的目录下！！！
+kvm
+/home2/chy/opt/share/qemu
+
+qemu
+/home2/chy/local/share/qemu
+===================================
+
+http://lists.nongnu.org/archive/html/qemu-devel/2013-03/msg02500.html
+-----------------------
+Previously, the multiboot option ROM set the mmap_length field of the
+multiboot info structure to the length of the mmap array *excluding*
+the final element of the array, rather than the total length of the
+array.  The multiboot specification indicates that this is incorrect,
+and it's incompatible with GRUB's [1] and SYSLINUX's [2] multiboot
+loaders, which both set mmap_length to the length of the entire mmap
+array.
+
+This bug is easy to miss: if the VM is configured with 3584 MB of RAM
+or less, the last E820 entry is simply a reserved region that does not
+overlap with any other region, so there's no harm in omitting it.
+However, if it's started with more than 3584 MB of RAM, the memory
+above the high memory hole appears as the last entry in the E820 map
+and will be omitted from the multiboot mmap array.
+
+This patch rewrites the loop that constructs the mmap array from the
+E820 map to simplify it and fix the final mmap_length value.
+
+[1] grub-core/loader/i386/multiboot_mbi.c:grub_multiboot_make_mbi
+
+[2] com32/mboot/mem.c:mboot_make_memmap
+
+Signed-off-by: Austin Clements <address@hidden>
+---
+ pc-bios/multiboot.bin         |  Bin 1024 -> 1024 bytes
+ pc-bios/optionrom/multiboot.S |   25 +++++++++----------------
+ 2 files changed, 9 insertions(+), 16 deletions(-)
+
+diff --git a/pc-bios/multiboot.bin b/pc-bios/multiboot.bin
+index 
+7b3c1745a430ea5e0e15b9aa817d1cbbaa40db14..24690fcc7d49d4751835c58878b9618425427dec
+ 100644
+GIT binary patch
+delta 119
+address@hidden;KdryK*rZVrajPB|8aZaEt!AcKt|ty|7+V*6}8
+z1|Ue=DFP(bI(eIqv!v}%cmWjI72xO_d{(sixJVJ3;_VWq*SAwT?Q|F>hcoVBOq(pq
+TWXLG8*_~+z<KzM+4n`#aoCG2B
+
+delta 123
+address@hidden;KdryK*rZVrajPB|8aZaEhwAcKt|ty|7*V*6}U
+z76t}}w4EYAQY}5L)BjJ}4uuy$kzE0fzQJcji$oP~mk92VVEF#H^LR?9oeo3uahBKT
+address@hidden>t9srM{CD#A|
+
+diff --git a/pc-bios/optionrom/multiboot.S b/pc-bios/optionrom/multiboot.S
+index 003bcfb..f8d374e 100644
+--- a/pc-bios/optionrom/multiboot.S
++++ b/pc-bios/optionrom/multiboot.S
+@@ -89,41 +89,34 @@ run_multiboot:
+ 
+        /* Initialize multiboot mmap structs using int 0x15(e820) */
+        xor             %ebx, %ebx
+-       /* mmap start after first size */
+-       movl            $4, %edi
++       /* edi = position in mmap struct list */
++       movl            $0, %edi
+ 
+ mmap_loop:
+        /* entry size (mmap struct) & max buffer size (int15) */
+        movl            $20, %ecx
+        /* store entry size */
+-       /* old as(1) doesn't like this insn so emit the bytes instead:
+-       movl            %ecx, %es:-4(%edi)
+-       */
+-       .dc.b           0x26,0x67,0x66,0x89,0x4f,0xfc
++       mov             %cx, %es:(%di)
++       add             $4, %di
+        /* e820 */
+        movl            $0x0000e820, %eax
+        /* 'SMAP' magic */
+        movl            $0x534d4150, %edx
+        int             $0x15
+ 
+-mmap_check_entry:
++       /* move entry pointer forward */
++       add             $20, %di
+        /* last entry? then we're done */
+        jb              mmap_done
+        and             %bx, %bx
+        jz              mmap_done
+        /* valid entry, so let's loop on */
+-
+-mmap_store_entry:
+-       /* %ax = entry_number * 24 */
+-       mov             $24, %ax
+-       mul             %bx
+-       mov             %ax, %di
+-       movw            %di, %fs:0x2c
+-       /* %di = 4 + (entry_number * 24) */
+-       add             $4, %di
+        jmp             mmap_loop
+ 
+ mmap_done:
++       /* update mmap_length in bootinfo */
++       movw            %di, %fs:0x2c
++
+ real_to_prot:
+        /* Load the GDT before going into protected mode */
+ lgdt:
+-- 
+----------------------------------------------------------------------
+
 03/14/2013
 ===================
 这两天，进一步阅读代码（主要是初始化部分，比较复杂），fix了另外一个bug（makeifle中的）。
