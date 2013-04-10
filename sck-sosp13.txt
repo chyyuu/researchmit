@@ -1,0 +1,46 @@
+与frans  and Nickolai
+1 投了两篇sosp, 另外一个是oplog
+
+为了更好合作，今天上午与Frans和Nickolai交流了一下。如果从小的地方做起，逐渐深入，觉得也许可以从如下几点考虑：
+1 oplog目前实现在linux上，能否实现在xv6上？（Frans说只有4xx line code）
+2 从工具角度考虑，实现更加全面的syscall，看看如何写spec和对应的implement.
+
+如果在这两点能够深入，则还可更长远的考虑
+1 目前commutativity重点考虑的是尽量实现 share nothing，但实际也有share
+something的情况，在这种情况下，如何设计最优的scalability方法（oplog是一个起点）
+2 我提出interface目前考虑的是syscall，其实在内核各个subsystem之间也需要考虑interface的问题。
+他们表示认可，只是如何做，何时做待定。
+3 目前mtrace对cache的模拟是理想化的，即认为cache无穷大的情况下，分析data shared问题。而针对实际cache大小的cache capacity的问题则现在不涉及。
+
+
+另外，我问了他golang和xv6的可能联系等问题。他也提出他认为目前golang与xv6在多核优化方面没有必然联系，二者都有针对多核的优化，但不搭界。另外，他指出 golang的channel是有序的，而目前的qmail bench是无序的。
+
+
+On Multicore Scalability and Commutativity
+
+Commutability
+Changing order of two operations:
+
+doesn’t affect their results
+doesn’t make execution order distinguiable
+Recall memory sequential cohenrency Not sure about the proof. Seems ‘correctness’ is determined by responses while internal states are not in consideration. Anyway, the rule itself provides insight.
+
+Components
+ANALYZER
+
+Interface analysis based on a simplified prototype. Is it possible that commutativity is implied in the representation given, instead of the interface itself? If so, it may be more useful to check existing interface implementations (maybe for lessons?)
+
+TESTGEN
+
+Coverage of the prototype.
+
+MTRACE
+
+Misc
+GC gives a chance for better scalability? (section 6.2 Defer work)
+
+Evaluation
+How much percentage of FS operations in real time applications can enjoy the scalability mentioned here?
+
+Possible works
+Redesign uCore interface (e.g. HAL) concerning scalability? Representations of API: do we have to use an implementation-like prototype?

@@ -1,3 +1,100 @@
+03/25/2013
+还没完全理解scale-xv6，又开始理解ucore plus了。
+在amd64-smp分支下
+trap.c中
+	SETGATE(idt[T_IPI], 0, GD_KTEXT, __vectors[T_IPI], DPL_USER);
+	SETGATE(idt[T_IPI_DOS], 0, GD_KTEXT, __vectors[T_IPI_DOS], DPL_USER);
+是啥意思？
+
+
+03/21/2013
+===================
+QEMU
+./param.h:64:#define PERFSIZE      (16<<20ull)
+BEN
+./param.h:82:#define PERFSIZE      (128<<20ull)
+KVM
+./param.h:87:#define PERFSIZE      (128<<20ull)
+
+PERFSIZE 只用在
+./kernel/kalloc.cc:1070:  slabmem[slab_perf].order = ceil_log2(PERFSIZE);
+./kernel/sampler.cc:27:#define LOG_SEGMENTS (PERFSIZE / LOG_SEGMENT_MAX)
+
+可以看出是设置记录性能采集参数的bufer大小
+
+扩展sysbench.cc 
+在做mmap/munmap的test中发现如果迭代次数过多，会out of memory
+请教austin, 一起分析，发现可能是mmap(0,...)则每次获得起始地址增长，导致用于管理这个地址的metadata 过量，从而out of memory
+
+过程如下：
+sysbench.cc::thr_mmap_munmap中
+
+char *p = (char*) mmap(0, 256 * 1024,
+
+表明要map 64个page
+----------------------
+qemu-kvm -serial mon:stdio -nographic -numa node -numa node  -m 4g -smp 4 -net user -net nic,model=e1000 -redir tcp:2323::23 -redir tcp:8080::80  -kernel o.kvm/kernel.elf
+
+$ sysbench 4 4 10 0   //表示每个线程要执行400000次  tr_mmap_munmap
+kalloc: out of memory
+kernel trap 14 err 0x0 cpu 1 cs 16 ds 24 ss 24
+  rip ffffffffc014bc9e rsp ffffff000781dcd8 rbp ffffff000781de58
+  cr2 0000000000000008 cr3 00000000ab9e1000 cr4 00000000000006b0
+  rdi 0000000000000010 rsi 0000000000000000 rdx ffffff000781ddd8
+  rcx 00000000000003d5 r8  ffffff00000b8e60 r9  ffffff011fe79000
+  rax 0000000000000000 rbx ffffff011ffca002 r10 0000000000000000
+  r11 0000000000000213 r12 0000000003dce904 r13 0000000000000000
+  r14 ffffff00437bb440 r15 ffffff011ffca0c0 rflags 0000000000010246
+  proc: name sysbench pid 109 kstack 0xffffff000781c000
+  page fault: non-present page reading 0000000000000008 from kernel mode
+  ffffffffc0144933
+  ffffffffc01394d3
+  ffffffffc015120c
+  ffffffffc0152a5b
+  0000000000403b61
+  0000000000409c12
+  0000000000401213
+  00000000004001cb
+  00000000004018d2
+  00000000004039ca
+
+
+
+chy@chyhome-PC:/home/devel/bitbucket/xv6/o.kvm$ addr2line -Csfipe kernel.elf
+  ffffffffc0144933
+  ffffffffc01394d3
+  ffffffffc015120c
+  ffffffffc0152a5b
+sys_munmap(userptr<void>, unsigned long) at sysproc.cc:153
+syscall(unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long) at syscall.cc:84
+sysentry_c at trap.cc:47
+sysentry at trapasm.S:86
+ffffffffc014bc9e
+page_holder::add(sref<page_info, void>&&) at vm.cc:100
+ (inlined by) vmap::remove(unsigned long, unsigned long) at vm.cc:258
+chy@chyhome-PC:/home/devel/bitbucket/xv6/o.kvm$ python
+Python 2.7.3 (default, Aug  1 2012, 05:14:39) 
+[GCC 4.6.3] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> 64 * 400000 * 4   //64个page, 400000次迭代，4个thread, 这个乘积就是要分配的元数据，根据论文，每个页都有一个元数据管理，我理解一个元数据占64byte，这样一页可放 4096/64个。
+102400000
+>>> 64 * 400000 * 4 / (4096/64)   //我理解一个元数据占64byte，这样一页可放 4096/64个。这样需要 1600000 页，即6G，即会out of memory
+1600000
+>>> 1600000 * 4096
+6553600000
+>>> (1600000 * 4096) / 1024 / 1024
+6250
+>>> (1600000 * 4096) / 1024 / 1024 / 1024
+6
+
+大约要6GB
+----------------------
+添加 fork, forkexec bench
+>40000次会out of memory
+现在限制在每个线程2000次
+待查
+
+
 03/20/2013
 ===================
 进一步阅读radixVM论文，了解其实现细节
