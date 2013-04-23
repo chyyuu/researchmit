@@ -1,0 +1,7 @@
+21,april, 2013
+in radixvm paper, 
+reference count  use weak reference.
+I need to know
+weak reference count
+http://en.wikipedia.org/wiki/Weak_reference
+https://weblogs.java.net/blog/2006/05/04/understanding-weak-references
