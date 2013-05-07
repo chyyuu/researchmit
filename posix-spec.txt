@@ -1,0 +1,468 @@
+environment:
+ i_map: the inode array(map)    SIMap = symtypes.tmap(SInum, SInode)
+ pipes: the pipe                SPipeMap = symtypes.tmap(SPipeId, SPipe)
+ root_dir : root directory      SDirMap = symtypes.tdict(SFn, SInum)
+ 2 procs, proc0/proc1           SProc = symtypes.tstruct(fd_map = SFdMap, va_map = SVaMap)  //SFdMap==tdict(simsym.SInt, SFd)  SVaMap==symtypes.tdict(SVa, SVMA)  
+ 
+  each proc has a fd_map(SFdMap) and va_map(SVaMap) 
+     |
+     ---->fd_map( type is SFdMap) is a array of fd,  fd_array[SInt]= SFd == {inode num, off, ispipe, pipeid}
+     |     inode num(type is SInum expr sort in z3, not a Interger!),  off (file R/W offset), ... 
+     |       |
+     |       ----the inode num --> a index of inode array (type is SIMap), inode_array[SInum]=SInode
+     |                              |   
+     |                              ----> inode is a structure (SInode)
+     |                                     |
+     |                                     ---> data (SData， tlist(SDataByte)， abstract file data block), 
+     |                                          nlink (link num), atime/mtime/ctime
+     |
+     --->va_map is a list of memory blocks list[va]=vma type(va)=SVa, type(vma)=SVma
+           |
+           ---> type(va)=SVa, which is a abstract expr sort in z3, not a Interger! 
+           |
+           ---> type(vma)=SVma,  anon(SBool), anondata(SDataByte) a data block, SData 是否更好？
+                                 writable(SBool, inum(SInum, for mmap a file), off(SInt, off of a file),  
+
+
+                                 
+                                 
+-----------------
+Symbolic Define
+
+
+                          Symbolic
+                          _z3_sort(cls)     #"""Return the Z3 sort of objects represented by this class."""
+                          _z3_value(self)   #"""Return the Z3 value wrapped by this object.  For mutable objects, this should be its current value."""
+                          _new_lvalue(cls, init) #"""Return a new instance of Symbolic with the given initial value, which must be a Z3 value."
+                          _wrap_lvalue(cls, getter, setter) #"""Create an instance of this object wrapping the Z3 value returned by getter. 
+                          any(cls, name=None) #"""Return a symbolic value whose concrete value is unknown."""
+                          _assumptions(cls, obj):  """Return the assumptions that should apply to a fresh created lvalue of 'obj'."""
+                          init_assumptions(self): return wrap(z3.BoolVal(True))
+                          __ne__(self, o): r = self == o ; return symnot(r)
+                             |
+                       ------------------------------------------------------------------------------------------------------
+                       |                     |                |                       |                  |                  |               |            |
+                      SymbolicConst        SExpr            SMapBase             SStructBase           SListBase        SDictBase        SSetBase     SBagBase
+                                           z3.ExprRef        tmap                  tstruct        tstruct(tmap,SInt) tstruct(tmap,tmap) tstruct(tmap) tstruct(tmap)
+                    immutable values        __str__     sort = z3.ArraySort   sort = z3.Datatype    _vals, _len       _map  _valid        _bmap         _imap
+                    any(cls, name=None)    __repr__
+                    _wrap_lvalue(cls,...)  _z3_value
+                      
+                       |                     |
+ -------------------------------         ----------------------------------------------------------------------------------------------------------------
+                                           |                |                              |                                 |           |             |
+                                         SArith           SBool                         SEnumBase                          STupleBase   SConstMapBase
+                                         z3.ArithRef   __ref_type__ = z3.BoolRef         __ref_type__ = z3.DatatypeRef      <--same    __ref_type__ = z3.ArrayRef  
+                                         +/-/*...     __z3_sort__ = z3.BoolSort()       z3.EnumSort                        z3.Datatype
+                                         >/</!=...    __nonzero__ #how to do TRUE!!!                  type(name, (STupleBase, SymbolicConst), fields)
+                                         
+                                           |
+                                         -----------------------------------
+                                           |
+                                          SInt 
+                                       __z3_sort__=z3.IntSort()
+                                          
+                                          
+  SymbolicConst+SExpr                              
+          |
+  -------------------------------
+    |     |      |        |    |
+   SFn  SInum SDataByte  SVa  SPipeId
+   
+   
+   ListBase(SdataByte)         
+      |
+     SData 
+
+   
+   SData = symtypes.tlist(SDataByte)
+   
+   SPipe = tstruct(data  = SData,
+                   nread = simsym.SInt)   
+   SPipeMap = symtypes.tmap(SPipeId, SPipe) 
+   
+   SFd = simsym.tstruct(ispipe      = simsym.SBool,
+                        pipeid      = SPipeId,
+                        pipewriter  = simsym.SBool,
+                        inum        = SInum,
+                        off         = simsym.SInt)
+  SFdMap = symtypes.tdict(simsym.SInt, SFd)              
+              
+              
+  SVMA = simsym.tstruct(anon        = simsym.SBool,
+                        writable    = simsym.SBool,
+                        inum        = SInum,
+                        off         = simsym.SInt,
+                        anondata    = SDataByte)
+  SVaMap = symtypes.tdict(SVa, SVMA)  
+  
+  
+  SProc = symtypes.tstruct(fd_map   = SFdMap,
+                           va_map   = SVaMap)    
+                           
+  SDirMap   = symtypes.tdict(SFn, SInum)
+  SInode    = simsym.tstruct(data   = SData,
+                             nlink  = simsym.SInt,
+                             atime  = simsym.SInt,
+                             mtime  = simsym.SInt,
+                            ctime   = simsym.SInt,
+                            ## XXX Directories impl:
+                            #isdir  = simsym.SBool,
+                            #dirmap = SDirMap,
+                       )
+  SIMap = symtypes.tmap(SInum, SInode)            
+  
+  
+  
+  
+syscall logic                  
+-------------------------------------------------
+TLPI p72 4.3 Opening a File: open()
+
+open (                pn=SPathname,                 //SPathname = SFn， 是一个SExpr，注意不是字符串！！！
+                      creat=simsym.SBool,
+                      excl=simsym.SBool,
+                      trunc=simsym.SBool,
+                      anyfd=simsym.SBool,
+                      pid=SPid,                     //simsym.SBool 
+                      internal_alloc_inum=SInum,    //一个 SExpr
+                      internal_ret_fd=simsym.SInt,  //返回的fd
+                      internal_time=simsym.SInt,    //创建时间？
+                     )    
+                     
+        self.add_selfpid(pid)  // simsym.assume(pid == False OR True ，代表proc0 OR proc1
+        created = False             
+        anyfd = False
+        _, pndirmap, pnlast = self.nameiparent(pn)   // pndirmap=root_dir(根目录)，type(root_dir)== DirMap = symtypes.tdict(SFn, SInum); pnlat==pn
+        if creat:
+            if not pndirmap.contains(pnlast):        // root_dir._valid[pnlast] is a SBool  如果是false，表明没有这个文件名在root_dir中
+                simsym.assume(simsym.symnot(self.iused(internal_alloc_inum)))    //需要分配一个新的inode,所以生成一个表达式internal_alloc_inum is not uesed
+                //表达为 !( exists(fn, (root_dir.contains(fn) && root_dir._map[fn] == inum))              ||
+                           exists(fd, (proc0.fd_map.contains(fd) && proc0.fd_map._map[fd].inum == inum))    ||
+                           exists(fd, (proc1.fd_map.contains(fd) && proc1.fd_map._map[fd].inum == inum)) ) 
+
+                ## Allocating dummy variables, then assigning or asserting
+                ## to/about their struct fields, and finally doing whole-struct
+                ## assignment seems to be easier for Z3 than ## poking at struct
+                ## members in existing large structs.
+                data_empty = SData.any(simsym.anon_name('dummy_data'))
+                simsym.assume(data_empty._len == 0)
+                idata = SInode.any(simsym.anon_name('dummy_idata'))
+                idata.data = data_empty
+                idata.nlink = 1
+                self.i_map[internal_alloc_inum] = idata
+                pndirmap[pnlast] = internal_alloc_inum
+
+                simsym.assume(internal_time > self.i_map[internal_alloc_inum].atime)
+                simsym.assume(internal_time > self.i_map[internal_alloc_inum].mtime)
+                simsym.assume(internal_time > self.i_map[internal_alloc_inum].ctime)
+                self.i_map[internal_alloc_inum].atime = internal_time
+                self.i_map[internal_alloc_inum].mtime = internal_time
+                self.i_map[internal_alloc_inum].ctime = internal_time
+                created = True                         //是否应该加一个 return('ok‘）? ,不能，因为还没有分配fd!!!
+            else:
+                if excl: return ('err', errno.EEXIST)  //O_EXCL 与 O_CREAT 标记一起使用时, 如果 name 指定的文件已经存在, open()调用将失败。
+                                                       //这样使用是为了防止创建文件时的竞争条件。
+
+        if not pndirmap.contains(pnlast):              //The specified file doesn’t exist, and O_CREAT was not specified, 
+            return ('err', errno.ENOENT)
+
+        inum = pndirmap[pnlast]                        //执行到这里表示这个文件存在，所以可获得inum
+        if trunc:
+            if not created:
+                simsym.assume(internal_time > self.i_map[inum].mtime)  //为何处理时间？ for stat系统调用!!!
+                simsym.assume(internal_time > self.i_map[inum].ctime)
+                self.i_map[inum].mtime = internal_time
+                self.i_map[inum].ctime = internal_time
+            data_empty = SData.any(simsym.anon_name('dummy_data'))    //如果是已有文件，那是否要释放已有的inode data? 如果表示释放过程???
+            simsym.assume(data_empty._len == 0)                       //??? del  self.i_map[inum].data，然后再赋值？
+            self.i_map[inum].data = data_empty                        //现在i_map[inode_num]的data为空了，用 data_empty._len==0表示                   
+
+        self.add_fdvar(internal_ret_fd)                               //给pseudo_sort_decls 元组列表增加了一项
+        simsym.assume(internal_ret_fd >= 0)                           // 返回的fd一定是>=0的
+        simsym.assume(simsym.symnot(self.getproc(pid).fd_map.contains(internal_ret_fd))) //procX的fd_map中应该没有用过这个值 即_vaild(tmap(internal_ret_fd)=false
+
+        ## Lowest FD
+        otherfd = simsym.SInt.any('fd')
+        simsym.assume(simsym.symor([anyfd,          //如果anyfd为false，则表示要取最小值的那个free的fd为返回条件。 not(otherfd < internal_ret_fd)
+            simsym.symnot(simsym.exists(otherfd,
+                simsym.symand([otherfd >= 0,
+                               otherfd < internal_ret_fd,
+                               self.getproc(pid).fd_map.contains(otherfd)])))]))
+
+        fd_data = SFd.any(simsym.anon_name('dummy_fd_data'))
+        fd_data.inum = inum
+        fd_data.off = 0
+        fd_data.ispipe = False
+        self.getproc(pid).fd_map[internal_ret_fd] = fd_data      //这里open一个文件的操作做完了， fd_map[internal_ret_fd]=fd_data, 且
+                                                                 //fd_data.inum=inode_num,且 pndirmap[path name]=inode_num , 且 i_map[inode_inum] = a inode data 
+
+        return ('ok', internal_ret_fd)                     
+
+---------------------------------------------------------
+TLPI p80 4.6 Closing a File: close()
+
+    @model.methodwrap(fd=simsym.SInt, pid=SPid)                
+    def close(self, fd, pid):
+        self.add_selfpid(pid)
+        self.add_fdvar(fd)
+        if not self.getproc(pid).fd_map.contains(fd):              //没有执行open，所以没有fd，报错返回
+            return ('err', errno.EBADF)
+        del self.getproc(pid).fd_map[fd]                           //删除这一项 ???是否考虑unlink的情况？如果i_map[inum].nlink==0 需要清除
+        return ('ok',)
+                             
+---------------------------------------------------------
+    @model.methodwrap(src=SPathname, dst=SPathname,             //SPathname = SFn， 是一个SExpr，注意不是字符串！！！
+                      internal_time=simsym.SInt)
+    def rename(self, src, dst, internal_time):                  
+        srcdiri, srcdirmap, srclast = self.nameiparent(src)     //return 0, root_dir, src
+        dstdiri, dstdirmap, dstlast = self.nameiparent(dst)     //return 0, root_dir, dst
+        if not srcdirmap.contains(srclast):                     // src 不存在，返回错误ENOENT
+            return ('err', errno.ENOENT)
+        if srcdiri == dstdiri and srclast == dstlast:           // 如果src==dst  啥也不做, return ok.  但srclast == dstlast这个条件是否多余？
+            return ('ok',)
+        if dstdirmap.contains(dstlast):                         // 如果dst存在，则dstinum = root_dir[dst]
+            dstinum = dstdirmap[dstlast]
+        else:
+            dstinum = None                                      // 如果dst以前不存在，这没有对应的dstinum, 所以dstinum=None
+        dstdirmap[dstlast] = srcdirmap[srclast]                // root_dir[dst]= root_dir[src] 这样dst文件名指向了src文件名对应的那个inode num， 
+        del srcdirmap[srclast]                                 // 删除 root_dir[src] 这样root_dir中的dict结构就少了一项
+        if dstinum is not None:                                          //如果dstinum不为空，这需要把其nlink--，因为它已经指向另外一个文件的inode了
+            self.i_map[dstinum].nlink = self.i_map[dstinum].nlink - 1    //如果为nlink==0,是否需要删除这个inode_num对应的data???   
+            simsym.assume(internal_time > self.i_map[dstinum].ctime)
+            self.i_map[dstinum].ctime = internal_time
+        return ('ok',)
+        
+----------------------------------------------------------
+TLPI p391 chapt:18.3 Creating and Removing (Hard) Links: link() and unlink()
+In addition to maintaining a link count for each i-node, the kernel also counts open
+file descriptions for the file (see Figure 5-2, on page 95). If the last link to a file is
+removed and any processes hold open descriptors referring to the file, the file
+won’t actually be deleted until all of the descriptors are closed.
+NOTICE: p95 figure 5.2 说明了3种情况: dup, fork, open/open
+
+    @model.methodwrap(pn=SPathname, internal_time=simsym.SInt)
+    def unlink(self, pn, internal_time):
+        _, dirmap, pnlast = self.nameiparent(pn)                // return root_dir, pn
+        if not dirmap.contains(pnlast):                         // root_dir中pn文件不存在，返回错误                 
+            return ('err', errno.ENOENT)                        
+        inum = dirmap[pnlast]                                   //得到inum
+        del dirmap[pnlast]                                      //把这个文件在root_dir中的项删除
+        self.i_map[inum].nlink = self.i_map[inum].nlink - 1     //nlink数减一，如果为nlink==0,是否需要删除这个inode_num对应的data??? 
+        simsym.assume(internal_time > self.i_map[inum].ctime)
+        self.i_map[inum].ctime = internal_time                  //没有考虑有进程打开了这个文件，(这有一个系统级别的表记录此事，Open file table， oft), 如果这样，需要判断，
+                                                                //如果oft[]没有这个文件了，表示没有进程打开此文件，就可以删除此inode了，即del self.i_map[inum]???
+        return ('ok',)
+
+------------------------------------------------------------
+    @model.methodwrap(oldpn=SPathname, newpn=SPathname, internal_time=simsym.SInt)
+    def link(self, oldpn, newpn, internal_time):
+        olddiri, olddirmap, oldlast = self.nameiparent(oldpn)   // return root_dir, old
+        newdiri, newdirmap, newlast = self.nameiparent(newpn)   // return root_dir, new
+        if not olddirmap.contains(oldlast):                     // root_dir中old文件不存在，返回错误
+            return ('err', errno.ENOENT)
+        if newdirmap.contains(newlast):                         // root_dir中new文件存在，返回错误
+            return ('err', errno.EEXIST)
+        inum = olddirmap[oldlast]
+        newdirmap[newlast] = inum                               // root_dir有对应关系了
+        self.i_map[inum].nlink = self.i_map[inum].nlink + 1     // nlink加一
+        simsym.assume(internal_time > self.i_map[inum].ctime)
+        self.i_map[inum].ctime = internal_time
+        return ('ok',) 
+------------------------------------------------------------
+TLPI p79
+
+    @model.methodwrap(fd=simsym.SInt, pid=SPid, internal_time=simsym.SInt)
+    def read(self, fd, pid, internal_time):
+        self.add_selfpid(pid)
+        self.add_fdvar(fd)
+        if not self.getproc(pid).fd_map.contains(fd):           //没有执行open，所以没有fd，报错返回
+            return ('err', errno.EBADF)
+        if self.getproc(pid).fd_map[fd].ispipe:                 //cont...
+            if self.getproc(pid).fd_map[fd].pipewriter:
+                return ('err', errno.EBADF)
+            pipe = self.pipes[self.getproc(pid).fd_map[fd].pipeid]
+            if pipe.data.len() == pipe.nread:
+                ## TODO: return EOF if no more writers; otherwise block
+                return ('err', 0)
+            simsym.assume(pipe.nread < pipe.data.len())
+            simsym.assume(pipe.nread >= 0)
+            d = pipe.data[pipe.nread]
+            pipe.nread = pipe.nread + 1
+            return ('data', d)
+        off = self.getproc(pid).fd_map[fd].off              //从fd_map中获得off, 这样知道从哪里读了
+        r = self.iread(self.getproc(pid).fd_map[fd].inum, off, internal_time)  //实际的inode读， 
+        if r[0] == 'data':                                 //表示inode读成功！ r[1]=i_map[inum].data[off],没有用处。
+            self.getproc(pid).fd_map[fd].off = off + 1     //逻辑上表示向前走了一格???  如果是这样，如何表示不同进程读写不同的文件部分？这要取[off, off+len]相互不等???
+        return r
+
+----------------------------------------------------------------
+TLPI p80
+        
+    @model.methodwrap(fd=simsym.SInt, databyte=SDataByte, pid=SPid, internal_time=simsym.SInt)
+    def write(self, fd, databyte, pid, internal_time):
+        self.add_selfpid(pid)
+        self.add_fdvar(fd)
+        if not self.getproc(pid).fd_map.contains(fd):      //没有执行open，所以没有fd，报错返回
+            return ('err', errno.EBADF)
+        if self.getproc(pid).fd_map[fd].ispipe:            //cont...
+            if not self.getproc(pid).fd_map[fd].pipewriter:
+                return ('err', errno.EBADF)
+            pipe = self.pipes[self.getproc(pid).fd_map[fd].pipeid]
+            ## TODO: return EPIPE if no more readers
+            simsym.assume(pipe.nread < pipe.data.len())
+            simsym.assume(pipe.nread >= 0)
+            pipe.data.append(databyte)
+            return ('ok',)
+        off = self.getproc(pid).fd_map[fd].off            
+        self.getproc(pid).fd_map[fd].off = off + 1         //逻辑上表示向前走了一格???  是否应该write成功后做加法???  由于iwrite都返回ok,所以放在这好像也没啥。  
+        return self.iwrite(self.getproc(pid).fd_map[fd].inum, off, databyte, internal_time)         
+
+---------------------------------------------------------------------
+TLPI p98 File I/O at a Specified Offset: pread() and pwrite()
+
+Calling pread() is equivalent to atomically performing the following calls:
+    off_t orig;
+    orig = lseek(fd, 0, SEEK_CUR);
+    lseek(fd, offset, SEEK_SET);
+    s = read(fd, buf, len);
+    lseek(fd, orig, SEEK_SET);
+    /* Save current offset */
+    /* Restore original file offset */
+These system calls can be particularly useful in multithreaded applications. 
+
+    @model.methodwrap(fd=simsym.SInt, off=simsym.SInt, pid=SPid, internal_time=simsym.SInt)
+    def pread(self, fd, off, pid, internal_time):
+        self.add_selfpid(pid)
+        self.add_fdvar(fd)
+        self.add_offvar(off)
+        if not self.getproc(pid).fd_map.contains(fd):       //没有执行open，所以没有fd，报错返回
+            return ('err', errno.EBADF)
+        if self.getproc(pid).fd_map[fd].ispipe:             //cont...
+            return ('err', errno.ESPIPE)
+        return self.iread(self.getproc(pid).fd_map[fd].inum, off, internal_time)  off从参数中取，而不是从fd_map[fd].off中取，
+ 
+ ---------------------------------------------------------------------
+ TLPI p98 File I/O at a Specified Offset: pread() and pwrite()
+
+    @model.methodwrap(fd=simsym.SInt, off=simsym.SInt, databyte=SDataByte, pid=SPid, internal_time=simsym.SInt)
+    def pwrite(self, fd, off, databyte, pid, internal_time):
+        self.add_selfpid(pid)
+        self.add_fdvar(fd)
+        self.add_offvar(off)
+        if not self.getproc(pid).fd_map.contains(fd):           //没有执行open，所以没有fd，报错返回
+            return ('err', errno.EBADF)
+        if self.getproc(pid).fd_map[fd].ispipe:                 //cont...
+            return ('err', errno.ESPIPE)
+        return self.iwrite(self.getproc(pid).fd_map[fd].inum, off, databyte, internal_time)   // always return ok 
+        
+--------------------------------------------------
+TLPI p279 15.1 Retrieving File Information: stat()
+
+    @model.methodwrap(pn=SPathname)
+    def stat(self, pn):
+        _, dirmap, pnlast = self.nameiparent(pn)     
+        if not dirmap.contains(pnlast):                          //没有这个文件，报错返回
+            return ('err', errno.ENOENT)
+        return self.istat(dirmap[pnlast])                       //全部ok
+
+--------------------------------------------------
+TLPI p279 15.1 Retrieving File Information: stat()
+
+    @model.methodwrap(fd=simsym.SInt, pid=SPid)
+    def fstat(self, fd, pid):
+        self.add_selfpid(pid)
+        self.add_fdvar(fd)
+        if not self.getproc(pid).fd_map.contains(fd):          //没有执行open，所以没有fd，报错返回
+            return ('err', errno.EBADF)
+        if self.getproc(pid).fd_map[fd].ispipe:                //cont... 
+            return ('ok', 0, 0, 0, 0, 0, 0)
+        return self.istat(self.getproc(pid).fd_map[fd].inum)   //全部ok
+
+
+--------------------------------------------------
+TLPI p1020 : 49.2 Creating a Mapping: mmap()
+
+    def mmap(self, anon, writable, fixed, va, fd, off, pid, internal_freeva):
+        ## TODO: MAP_SHARED/MAP_PRIVATE for files
+        ##       -> how to model delayed file read?
+        ## TODO: MAP_SHARED/MAP_PRIVATE for anon (with fork)
+        ## TODO: zeroing anon memory
+        self.add_selfpid(pid)
+        self.add_fdvar(fd)
+        self.add_offvar(off)
+        myproc = self.getproc(pid)
+        if not fixed:
+            va = internal_freeva
+            simsym.assume(simsym.symnot(myproc.va_map.contains(va)))
+        vma = SVMA.any(simsym.anon_name('dummy_vma'))
+        vma.anon = anon
+        vma.writable = writable
+        if not anon:
+            if not myproc.fd_map.contains(fd):
+                return ('err', errno.EBADF)
+            if myproc.fd_map[fd].ispipe:
+                return ('err', errno.EACCES)
+            vma.off = off
+            vma.inum = myproc.fd_map[fd].inum
+        myproc.va_map[va] = vma
+        return ('ok', va)
+
+        
+inode级别的操作
+---------------------------------------------
+TLPI p280 15.1 Retrieving File Information: stat() 下面是还没有考虑的属性
+dev_t       st_dev; /* IDs of device on which file resides */
+ino_t       st_ino;
+mode_t      st_mode;
+uid_t       st_uid;
+gid_t       st_gid;
+dev_t       st_rdev; /* IDs for device special files */
+off_t       st_size; /* Total file size (bytes) */
+blksize_t   st_blksize; /* Optimal block size for I/O (bytes) */
+blkcnt_t    st_blocks;  /* Number of (512B) blocks allocated */
+
+
+    def istat(self, inum):                                       //返回stat需要的各方面内容
+        len = self.i_map[inum].data._len
+        nlink = self.i_map[inum].nlink
+        atime = self.i_map[inum].atime
+        mtime = self.i_map[inum].mtime
+        ctime = self.i_map[inum].ctime
+        return ('ok', inum, len, nlink, atime, mtime, ctime)
+                 
+--------------------------------------------------------------------
+inode 级别的read，每次读一个disk block (or unit)？
+
+    def iread(self, inum, off, time):
+        simsym.assume(off >= 0)
+        if off >= self.i_map[inum].data._len:              //读到文件结尾了
+            return ('eof',)
+        if time is not None:                               
+            simsym.assume(time > self.i_map[inum].atime) 
+            self.i_map[inum].atime = time
+        return ('data', self.i_map[inum].data[off])       //正常返回,  self.i_map[inum].data[off]的值
+        
+--------------------------------------------------------------------
+inode 级别的write
+
+    def iwrite(self, inum, off, databyte, time):                  
+                                                                  //这里假定了i_map[inum]一定有东西。sure???
+        simsym.assume(off >= 0)                                   //???有做减法的地方吗？是否有必要？
+        ## Avoid overly-long files.  fs-test.py caps file size at 16 units.
+        simsym.assume(off < 10)                                   //确保文件write的off不超过10                      
+        ## XXX Handle sparse files?
+        simsym.assume(off <= self.i_map[inum].data._len)         // 加上前面的条件，这样好像对sparse file不合理???
+
+        if off == self.i_map[inum].data._len:                    // 正好在文件尾部，这样可以增加内容
+            self.i_map[inum].data.append(databyte)
+        else:
+            self.i_map[inum].data[off] = databyte                // 在文件中间某处写一个unit的databyte
+        if time is not None:
+            simsym.assume(time > self.i_map[inum].mtime)
+            simsym.assume(time > self.i_map[inum].ctime)
+            self.i_map[inum].mtime = time
+            self.i_map[inum].ctime = time
+        return ('ok',)
+        
+                                                            

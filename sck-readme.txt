@@ -1,3 +1,32 @@
+04/30/2013 some info
+From: Marc Shapiro -- at work <marc.shapiro@acm.org>
+Subject: your SOSP submission
+
+A couple of quick questions or comments on your submission:
+
+ - p 2 "the presence or absence of synchronization instructions
+   is orthogonal to scalability,"  Amdahl's Law states exactly
+   the opposite.  I think I understand what you mean, thanks to the
+   explanation that follows, but its non-obvious to the unprepared reader.
+   (Self-contradition: on p. 10 you say the opposite: "Another source of
+   non-scalability is coarse grained locking.")
+
+ - Section 5.1 it would have been useful to show an example specification.
+
+ - The Linux implementation of tmpfs doesn't scale so you set out to
+   implement your own, except not in Linux.  Thus any comparison between the
+   two is unconvincing.  You say: "...because the file system implementation
+   is not modular and the ScaleFS design would have required making
+   changes throughout the entire Linux kernel."  That's easy to believe.
+   However, did you consider the opposite experience: porting tmpfs to xv6,
+   confirming the Linux measurements (i.e. the non-scalable parts are in
+   tmpfs, not in the rest of the kernel), and *then* comparing to yours?
+
+ - The reference to xv6 violates the anonymity requirements.
+
+                                        Marc
+---------------------------------------------------------
+
 03/25/2013
 还没完全理解scale-xv6，又开始理解ucore plus了。
 在amd64-smp分支下

@@ -1,3 +1,18 @@
+
+
+04/25/2013
+目前 python spec.py fs
+real	8m46.775s
+user	8m45.548s
+sys	0m0.620s
+
+python spec.py fs -t t.out
+下面执行太久，无法通过
+mprotect mprotect
+  can commute: maybe
+  cannot commute, something can diverge: maybe
+
+
 simsym.py
     def __getattr__(self, name):
         if name not in self._fields:
@@ -13,8 +28,101 @@ def z3_sort_hash(self):
     return hash(str(self))
 z3.SortRef.__hash__ = z3_sort_hash
 del z3_sort_hash
+定义后又删除是为了啥？
 
-定义后又删除是啥意思？
+
+========================
+symtypes.py
+========================
+形成了通用数据结构的符号定义
+
+构造一个 SMap类
+------------------------------
+def tmap(indexType, valueType):
+    """Return a subclass of SMapBase that maps from 'indexType' to
+    'valueType', where both must be subclasses of Symbolic."""
+    # XXX We could accept a size and check indexes if indexType is an
+    # ordered sort
+    name = "SMap_%s_%s" % (indexType.__name__, valueType.__name__)
+    sort = z3.ArraySort(indexType._z3_sort(), valueType._z3_sort())
+    return type(name, (SMapBase,),
+                {"_indexType" : indexType, "_valueType" : valueType,
+                 "__z3_sort__" : sort})
+
+构造一个 SStruct类
+------------------------------
+def tstruct(**fields):
+    """Return a subclass of SStructBase for a struct type with the
+    given fields.  'fields' must be a dictionary mapping from names to
+    symbolic types."""
+
+    name = "SStruct_" + "_".join(fields.keys())
+    z3name = anon_name(name)
+    sort = z3.Datatype(z3name)
+    fieldList = fields.items()
+    sort.declare(z3name, *[(fname, typ._z3_sort()) for fname, typ in fieldList])
+    sort = sort.create()
+
+    type_fields = {"__slots__": [], "_fields": fields, "_fieldList": fieldList,
+                   "_z3name": z3name, "__z3_sort__": sort,
+                   "_ctor": getattr(sort, z3name)}
+    return type(name, (SStructBase,), type_fields)
+
+构造SList类
+--------------------------
+def tlist(valueType):
+    name = "SList_" + valueType.__name__
+    base = tstruct(_vals = tmap(SInt, valueType), _len = SInt)
+    return type(name, (base, SListBase), {})
+
+构造SDict类
+---------------------------
+def tdict(keyType, valueType):
+    name = "SDict_" + keyType.__name__ + "_" + valueType.__name__
+    base = tstruct(_map = tmap(keyType, valueType),
+                   _valid = tmap(keyType, SBool))
+    return type(name, (base, SDictBase), {})
+
+构造 SSet类
+----------------------------
+def tset(valueType):
+    """Return a set type with the given value type."""
+    name = "SSet_" + valueType.__name__
+    mapType = tmap(valueType, SBool)
+    base = tstruct(_bmap = mapType)
+    return type(name, (base, SSetBase), {"_mapType": mapType})
+
+构造 SBag类
+-----------------------------
+def tbag(valueType):
+    name = "SBag_" + valueType.__name__
+    mapType = tmap(valueType, SInt)
+    base = tstruct(_imap = mapType)
+    return type(name, (base, SBagBase), {"_valueType": valueType})
+    
+    
+
+========================
+fs.py
+========================
+pn:pathname
+
+// File name
+class SFn(simsym.SExpr, simsym.SymbolicConst):
+    __z3_sort__ = z3.DeclareSort('Fn')
+// Inode number
+class SInum(simsym.SExpr, simsym.SymbolicConst):
+    __z3_sort__ = z3.DeclareSort('Inum')
+//data content in Inode
+class SDataByte(simsym.SExpr, simsym.SymbolicConst):
+    __z3_sort__ = z3.DeclareSort('DataByte')
+// Virtual addr
+class SVa(simsym.SExpr, simsym.SymbolicConst):
+    __z3_sort__ = z3.DeclareSort('VA')
+// Pipe Id
+class SPipeId(simsym.SExpr, simsym.SymbolicConst):
+    __z3_sort__ = z3.DeclareSort('PipeId')
+    
 
 dictionary SDict (keyType, valueType) {
    SMap (keyType, valueType)  _map
@@ -60,23 +168,29 @@ struct SVMA {
 
 // for file inode table, os level
 map  SIMap [SInum] = SInode
+
 // for root dir (filename-->inode number), os level
 dictionary SDirMap :: SDict {
        SMap [SFn]= SInum   _map     // filename --> inode number (the index of dir entry)
        SMap [SFn]= Sbool   _valid   // filename is valid?
 }
-       
 
+// for pipe定义，data是pipe中的tlist (可以理解为一个数据数组) ， nread？？？      
+SPipe = simsym.tstruct(data = SData,
+                       nread = simsym.SInt)
+                       
 
 FS (or 将来进化到OS)的model全局变量
+=========================================
 // for dir   
- self.i_map = SIMap.any('Fs.imap')    
+ self.i_map = SIMap.any('Fs.imap')        // SIMap = symtypes.tmap(SInum, SInode)
 //root dir's inode map
-self.root_dir = SDirMap.any('Fs.rootdir')
-// for proc
- self.proc0 = SProc.any('Fs.proc0')   //proc0 struct
- self.proc1 = SProc.any('Fs.proc1')   //proc1 strcut
- 
+self.root_dir = SDirMap.any('Fs.rootdir') // SDirMap = symtypes.tdict(SFn, SInum)
+// for proc0 and proc1
+ self.proc0 = SProc.any('Fs.proc0')       // SProc = symtypes.tstruct(fd_map = SFdMap,                         
+ self.proc1 = SProc.any('Fs.proc1')       //                          va_map = SVaMap)
+// for pipe 
+ self.pipes = SPipeMap.any('Fs.pipes')    // SPipeMap = symtypes.tmap(SPipeId, SPipe)
  
  
  在代码中的assume中的表达式会被加入到 assume_list中
@@ -107,11 +221,91 @@ import simsym
 internal_vars = {None: SInt.any('__dummy')} //Helpers for tracking "internal" variables
 
 以上面函数为例
-test --> calls[0|1]-->munmap
+symbolic_apply --> rv = fn(*args) ==> test (*args) --> calls[0|1]-->munmap
 即
-r[idx] = calls[idx](s, chr(idx + ord('a')), seqname)  //s=是类Fs的一个object实例
+r[idx] = calls[idx](s, chr(idx + ord('a')), seqname)  //s是类fs.Fs的一个object实例
  -->
     munmap（self, whichcall=(a|b), whichseq=(ab|ba))
+
+1） 在执行 b, a调用顺序， 
+ s=base()      //是类fs.Fs的一个object实例
+ r={}
+所以先后调用  
+  r[0]=munmap(fs.Fs object, a, ab) 
+  r[1]=munmap(fs.Fs object, b, ab) 
+  
+  all_s.append(s)
+  all_r_append(r)
+  
+  此时记录了，a执行munmp, 然后b执行mumap 后的结果r,和状态s
+  call[0](s,a,ab)
+  call[1](s,b,ab)
+  all_s=  [<fs.Fs object at 0x32d61b0>]
+  all_r= [{0: ('ok',), 1: ('ok',)}] 这说明a/b执行munmap的某个分支执行完毕，a/b返回ok
+
+  
+2）接下来需要在执行 b, a调用顺序，
+ 即
+   s=base()  
+   r={}  
+   call[1](s,b,ba)
+   call[0](s,a,ba)
+  
+   r[1]=munmap(fs.Fs object, b, ba) 
+   r[0]=munmap(fs.Fs object, a, ba) 
+   all_s= [<fs.Fs object at 0x32d61b0>, <fs.Fs object at 0x31c8890>] 
+   all_r= [{0: ('ok',), 1: ('ok',)}, {0: ('ok',), 1: ('ok',)}]
+     
+3) 执行ab,ba执行结果和状态的比较（注意，这只是二者的一个munmap执行分支的情况）
+L25 : 
+      if simsym.symor([all_r[0] != r for r in all_r[1:]]):
+         diverge += ('results',)
+      if simsym.symor([all_s[0] != s for s in all_s[1:]]):
+         diverge += ('state',)
+对二者做比较，看他们是否不同。如果有不同，则把diverge添加一个结果
+s 比较复杂，记录了执行路径中的逻辑表达式
+[Not(And(Fs.imap == Fs.imap,
+        SStruct_va_map_fd_map7(SStruct__valid__map6(Store(_valid(va_map(SStruct_va_map_fd_map7(SStruct__valid__map6(Store(_valid(va_map(Fs.proc0)),
+                                        a.munmap.va,
+                                        False),
+                                        _map(va_map(Fs.proc0))),
+                                        fd_map(Fs.proc0)))),
+                                        b.munmap.va,
+                                        False),
+                                        _map(va_map(SStruct_va_map_fd_map7(SStruct__valid__map6(Store(_valid(va_map(Fs.proc0)),
+                                        a.munmap.va,
+                                        False),
+                                        _map(va_map(Fs.proc0))),
+                                        fd_map(Fs.proc0))))),
+                               fd_map(SStruct_va_map_fd_map7(SStruct__valid__map6(Store(_valid(va_map(Fs.proc0)),
+                                        a.munmap.va,
+                                        False),
+                                        _map(va_map(Fs.proc0))),
+                                        fd_map(Fs.proc0)))) ==
+        SStruct_va_map_fd_map7(SStruct__valid__map6(Store(_valid(va_map(SStruct_va_map_fd_map7(SStruct__valid__map6(Store(_valid(va_map(Fs.proc0)),
+                                        b.munmap.va,
+                                        False),
+                                        _map(va_map(Fs.proc0))),
+                                        fd_map(Fs.proc0)))),
+                                        a.munmap.va,
+                                        False),
+                                        _map(va_map(SStruct_va_map_fd_map7(SStruct__valid__map6(Store(_valid(va_map(Fs.proc0)),
+                                        b.munmap.va,
+                                        False),
+                                        _map(va_map(Fs.proc0))),
+                                        fd_map(Fs.proc0))))),
+                               fd_map(SStruct_va_map_fd_map7(SStruct__valid__map6(Store(_valid(va_map(Fs.proc0)),
+                                        b.munmap.va,
+                                        False),
+                                        _map(va_map(Fs.proc0))),
+                                        fd_map(Fs.proc0)))),
+        Fs.proc1 == Fs.proc1,
+        Fs.pipes == Fs.pipes,
+        Fs.rootdir == Fs.rootdir))]
+        
+        
+
+
     
 这时，先调用了munmap对应的wrapped(self, whichcall, whichseq)
     self= fs.Fs object at 0x21890f0>
@@ -303,5 +497,121 @@ class MetaZ3Wrapper(type):
  这样确保都是在进行符号执行。
  
  
+ -----------------------
+ 分析spec.py
+ 执行  这里m是fs.py
+ L375: pseudo_sort_decls = getattr(m, 'pseudo_sort_decls', [])
+ 
+ [(nlink, 'file-nlink'), (_len, 'file-length'), (atime, 'time'), (mtime, 'time'), (ctime, 'time'), (off, 'file-length')]
+ 
+ L376: pseudo_sort_ignore = getattr(m, 'pseudo_sort_ignore', {})
+ 
+ [(nlink, 'file-nlink'), (_len, 'file-length'), (atime, 'time'), (mtime, 'time'), (ctime, 'time'), (off, 'file-length')]
+ 
+ L385     calls = m.model_functions
+ [<unbound method Fs.open>, <unbound method Fs.pipe>, <unbound method Fs.pread>, <unbound method Fs.pwrite>, <unbound method Fs.read>, <unbound method Fs.write>, <unbound method Fs.unlink>, <unbound method Fs.link>, <unbound method Fs.rename>, <unbound method Fs.stat>, <unbound method Fs.fstat>, <unbound method Fs.close>, <unbound method Fs.mmap>, <unbound method Fs.munmap>, <unbound method Fs.mprotect>, <unbound method Fs.mem_read>, <unbound method Fs.mem_write>]
+ 
+L389: for callset in itertools.combinations_with_replacement(calls, args.ncomb):
+ first time: callset= (<unbound method Fs.open>, <unbound method Fs.open>)
+ 
+simsym.py::L 810  : rv = fn(*args)
+
+
+注意  目的是在每条路径上把所有的元素之间的等或不等的表达式找出来并求解。
+class IsomorphicMatch(object):
+
+
+for callset in itertools.combinations_with_replacement(calls, args.ncomb):          // choose one syscall set, e.g. (open, close)
+...
+    for result, condlist in simsym.symbolic_apply(test, base, *callset).items():    // check (open,close) and (close, open)'s all exec path
+    ...
+    for diverge, condlist in sorted(conds.items()):                                 // print some thing...
+    ...
+    for e in conds[()]:               
+        e = simsym.simplify(e)                                                      // e = the conditions(asserts) in a specific exec path 
+        while ncond < args.max_testcases:                                           // try to get all possible e to  
+            check, model = simsym.check(e)
+            if check == z3.unsat: break
+            ...
+            same = IsomorphicMatch(model)                                           // in this model, checkout the params in syscall , 
+            notsame = same.notsame_cond()                                           // 
+            ...
+            e = simsym.symand([e, notsame])
  
  
+ 
+分析 IsomorphicMatch(object):
+__init__(self, model):
+    ...
+    self.groups_changed = True
+    while self.groups_changed:   //add_assignment_uninterp会改变groups_changed
+       self.process_model(model)
+    
+    self.process_uninterp()://下面是此函数具体实现   ？？？???有些不清楚
+        for sort in self.uninterps:
+            groups = self.uninterp_groups(sort)
+            for _, exprs in groups:
+                for otherexpr in exprs[1:]:
+                    self.conds.append(exprs[0] == otherexpr)
+            representatives = [exprs[0] for _, exprs in groups]
+            if len(representatives) > 1:
+                self.conds.append(z3.Distinct(representatives))    
+    
+    -->process_model(model)
+       for decl in model:  //注意，不处理 '!' in str(decl) or 'internal_' in str(decl) or 'dummy_' in str(decl)
+          self.process_decl_assignment(decl, model[decl], model)
+           
+          -->process_decl_assignment(self, decl, val, model):
+                dconst = decl()
+                self.process_const_assignment(dconst, val, model)
+               
+               -->process_const_assignment(self, dconst, val, model):
+                    dsort = dconst.sort()
+                    分四种情况处理
+                    if dsort.kind() in [z3.Z3_INT_SORT, z3.Z3_BOOL_SORT，z3.Z3_UNINTERPRETED_SORT]: 
+                       self.add_assignment(dconst, val)
+                    
+                    if dsort.kind() == z3.Z3_DATATYPE_SORT:
+                       for i in range(0, dsort.constructor(nc).arity()):
+                            ...
+                            self.process_const_assignment(dconst_field, childval, model)    //递归处理下层数据
+                    
+                    if dsort.kind() == z3.Z3_ARRAY_SORT:
+                        ...
+                        for fidx, fval in flist[:-1]:
+                            ...
+                            self.process_const_assignment(dconst[fidxrep], fval, model)     //递归处理数组元素
+                            
+                   if dconst.domain().kind() == z3.Z3_UNINTERPRETED_SORT:
+                        univ = model.get_universe(dconst.domain())
+                        ...
+                        for idx in univ:
+                            ...
+                            self.process_const_assignment(dconst[idxrep], flist[-1], model)  //递归处理函数调用参数
+                            
+                            
+                    -->add_assignment(self, expr, val):         
+                       分四种情况讨论
+                       if val.sort().kind() == z3.Z3_UNINTERPRETED_SORT:     
+                            self.add_assignment_uninterp(expr, val, sort)
+                       
+                       for d, sortname in pseudo_sort_decls:         pseudo_sort_decls在fs.py中赋值
+                        .... 如果是pseudo_sort_ignore[sortname]，直接返回不处理  pseudo_sort_ignore 在fs.py中赋值
+                             如果是 not expr.decl().eq(d) continue 
+                             self.add_assignment_uninterp(expr, val, sortname)
+                                                          
+                       如果不是上述情况，就应该是布尔表达式了，即 expr.sort().kind() == z3.Z3_BOOL_SORT:   
+                       如果cond是新的，把它加入到self.conds中
+                       cond = (expr == val)
+                       if not any([c.eq(cond) for c in self.conds]):
+                            self.conds.append(cond)  
+
+                          --> add_assignment_uninterp(self, expr, val, sort):
+                                new_group = True
+                                for uexpr, uval in self.uninterps[sort]:
+                                    if uval.eq(val):
+                                        new_group = False
+                                        if uexpr.eq(expr): return
+                                if new_group:
+                                    self.groups_changed = True            //如果有变化，则groups_changed为true
+                                self.uninterps[sort].append((expr, val))
