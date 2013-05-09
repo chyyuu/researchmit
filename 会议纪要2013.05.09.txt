@@ -1,0 +1,33 @@
+2013.05.09, 与frans, nickolai 交流纪要：
+我：
+介绍了目前对commuter的理解。近期重点关注了commuter.认为mmap等的va用SInt可能更合适，且可以限制其范围
+提了一些问题：
+现在的posix syscall 是否需要改进，已支持multicore?
+F&N: 好像只有小的修改，没有看到大修改的必要性
+
+是否需要把大部份的syscall聚集起来，形成vector方式的syscall?
+N: 把多个线程放到不同core上，也应该可以并行
+F：也许可结合flexSC的基本思路，看看在manycore上会有啥问题？
+
+interface spec是implement spec的一个广义定义，能够在二者直接通过analysis, verify直接验证其关系？
+F&N: 符号执行也许可以验证二者之间的关系，但建立implement spec，需model hardware等，困难大。
+
+为何不把技术实现在linux中？
+linux tmpfs使用了dcache, buffer cacahe等，如果要修改这两部分，工作量大，不相干的多。
+
+
+如何管理学生？
+F:部分内容自己钻得比较深，比如xv6。但其它方面，主要是指方向和提问。不可能把细节都了解。
+
+
+
+Frans: 
+1 oplog有可能在linux里有更大发展，可以进一步关注
+2 可以考虑futex的spec,形成尽量完善的一个小的os的spec
+3 可以与王曦等多聊，但要集中，聚焦。
+
+Nick: 
+1 某些app发出了syscall require, 这些call导致了scalability不行，且实际上可以通过commuter找到？
+2 BSD的vfs的spec是如何的？ 注：好像有posix不同
+3 可以实现其它层面的interface的spec
+4 正在建立ref counter的spec

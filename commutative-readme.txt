@@ -327,7 +327,8 @@ munmap(self, {SVa}a.munmap.va, {SBool}a.munmap.pid)
 这样在执行munmap时，就已经是在符号执行了
 
 如果参数是'internal_'开头的，则会把它放入internal_vars中internal_vars［'参数'］=参数
-我理解internal表示内部变量，即执行后的state情况。
+我理解internal表示内部变量，即执行后的state情况，对外不可见，所以从调用参数上无法体现。
+其实在IsomorphicMatch中，这类变量不会处理生成same逻辑
         
 执行完m(self, **args)后，由于munmap返回('ok',)，所以  wrapped也返回('ok',)     
 
@@ -528,11 +529,25 @@ for callset in itertools.combinations_with_replacement(calls, args.ncomb):      
     for diverge, condlist in sorted(conds.items()):                                 // print some thing...
     ...
     for e in conds[()]:               
-        e = simsym.simplify(e)                                                      // e = the conditions(asserts) in a specific exec path 
-        while ncond < args.max_testcases:                                           // try to get all possible e to  
-            check, model = simsym.check(e)
+        e = simsym.simplify(e)                                                      // e = the conditions(asserts) in a specific exec path && sat the commuter spec
+        while ncond < args.max_testcases:                                           // try to get all possible different model from e  
+            check, model = simsym.check(e)                                          // get a check and model, if check=sat, then this model 
             if check == z3.unsat: break
             ...
+            
+            vars = { model_unwrap(k, model): model_unwrap(model[k], model)          //下面这段代码生成一个testcase，并加入到testcases list中
+                     for k in model
+                     if '!' not in model_unwrap(k, model) }
+            if args.verbose_testgen:
+                print 'New assignment', ncond, ':', vars
+            testcases.append({
+                'calls': [c.__name__ for c in callset],
+                'vars':  vars,
+            })
+            ncond += 1
+                        
+            ...
+            
             same = IsomorphicMatch(model)                                           // in this model, checkout the params in syscall , 
             notsame = same.notsame_cond()                                           // 
             ...
@@ -615,3 +630,95 @@ __init__(self, model):
                                 if new_group:
                                     self.groups_changed = True            //如果有变化，则groups_changed为true
                                 self.uninterps[sort].append((expr, val))
+                                
+
+IsomorphicMatch根据算出的model，计算处一个新的conds，比如对于mprotect,mprotect，z3 check出一个model
+ModelRef: [a.mprotect.writable = False,
+ b.mprotect.pid = False,
+ Fs.proc0 = SStruct_va_map_fd_map7(SStruct__valid__map6(as-array,
+                                        as-array),
+                                   SStruct__valid__map4(as-array,
+                                        as-array)),
+ a.mprotect.va = VA!val!0,
+ b.mprotect.va = VA!val!1,
+ b.mprotect.writable = True,
+ a.mprotect.pid = False,
+ k!151 = [else -> False],
+ k!152 = [VA!val!0 ->
+          SStruct_writable_anon_off_anondata_inum5(False,
+                                        False,
+                                        1,
+                                        DataByte!val!1,
+                                        Inum!val!1),
+          VA!val!1 ->
+          SStruct_writable_anon_off_anondata_inum5(False,
+                                        False,
+                                        0,
+                                        DataByte!val!0,
+                                        Inum!val!0),
+          else ->
+          SStruct_writable_anon_off_anondata_inum5(False,
+                                        False,
+                                        1,
+                                        DataByte!val!1,
+                                        Inum!val!1)],
+ k!153 = [VA!val!0 -> True, VA!val!1 -> True, else -> True],
+ k!150 = [else ->
+          SStruct_ispipe_pipewriter_off_pipeid_inum3(False,
+                                        False,
+                                        0,
+                                        PipeId!val!0,
+                                        Inum!val!1)]]
+                                                                        
+注意IsomorphicMatch中的重要成员变量
+conds=[True, a.mprotect.writable == False, b.mprotect.pid == False]
+uninterps=defaultdict(<type 'list'>, {VA: [(a.mprotect.va, VA!val!0)]})
+
+group_changed=True
+在成员函数add_assignment_uninterp(self, expr, val, sort):中有对group_changed=True的赋值，表明有新的uninterp的sort和变量了。
+
+执行完
+       while self.groups_changed:
+            self.groups_changed = False
+            self.process_model(model)
+后
+conds=[True, a.mprotect.writable == False, b.mprotect.pid == False, b.mprotect.writable == True, a.mprotect.pid == False, _valid(va_map(Fs.proc0))[a.mprotect.va] == True, _valid(va_map(Fs.proc0))[b.mprotect.va] == True, writable(_map(va_map(Fs.proc0))[a.mprotect.va]) == False, anon(_map(va_map(Fs.proc0))[a.mprotect.va]) == False, writable(_map(va_map(Fs.proc0))[b.mprotect.va]) == False, anon(_map(va_map(Fs.proc0))[b.mprotect.va]) == False]
+
+uninterps=defaultdict(<type 'list'>, {VA: [(a.mprotect.va, VA!val!0), (b.mprotect.va, VA!val!1)], DataByte: [(anondata(_map(va_map(Fs.proc0))[a.mprotect.va]), DataByte!val!1), (anondata(_map(va_map(Fs.proc0))[b.mprotect.va]), DataByte!val!0)], Inum: [(inum(_map(va_map(Fs.proc0))[a.mprotect.va]), Inum!val!1), (inum(_map(va_map(Fs.proc0))[b.mprotect.va]), Inum!val!0)]})
+
+接下来执行process_uninterp()函数，
+有如下处理
+  self.conds.append(z3.Distinct(representatives))
+即把uninterp的变量增加一个表达式 ！=
+把这些包含uninterps中的变量的!=表达式也加入到conds中，最终形成
+conds=[True, a.mprotect.writable == False, b.mprotect.pid == False, b.mprotect.writable == True, a.mprotect.pid == False, _valid(va_map(Fs.proc0))[a.mprotect.va] == True, _valid(va_map(Fs.proc0))[b.mprotect.va] == True, writable(_map(va_map(Fs.proc0))[a.mprotect.va]) == False, anon(_map(va_map(Fs.proc0))[a.mprotect.va]) == False, writable(_map(va_map(Fs.proc0))[b.mprotect.va]) == False, anon(_map(va_map(Fs.proc0))[b.mprotect.va]) == False, a.mprotect.va != b.mprotect.va, anondata(_map(va_map(Fs.proc0))[a.mprotect.va]) !=
+anondata(_map(va_map(Fs.proc0))[b.mprotect.va]), inum(_map(va_map(Fs.proc0))[a.mprotect.va]) !=
+inum(_map(va_map(Fs.proc0))[b.mprotect.va])]
+
+
+这样执行完 same = IsomorphicMatch(model) （spec.py, L448）后，获得了一个IsomorphicMatch类的对象same，即根据model生成了一个对应的表达式，其特征是
+有解释的，比如int, bool类型的变量，根据model的具体值，生成一个==逻辑表达式，对于没解释的变量（这些可能是int啥的，但其实我们不关注，所以设置没解释类型），生成这些变量的!=逻辑表达式。
+把 same 取反，即执行  notsame = same.notsame_cond()
+这个notsame是表示下次不用这个生成的model了，我们需要生成一个新的model,所以
+e = simsym.symand([e, notsame])
+
+这样符合commuter的e也更新了，确保可以不会生成相同的model了。
+
+  
+注意fs.py中定义的fs的内部变量. m即fs.py 算是一个module
+pseudo_sort_decls = getattr(m, 'pseudo_sort_decls', [])
+[(nlink, 'file-nlink'), (_len, 'file-length'), (atime, 'time'), (mtime, 'time'), (ctime, 'time'), (off, 'file-length')]
+
+pseudo_sort_ignore = getattr(m, 'pseudo_sort_ignore', {})
+{'file-length': True, 'file-nlink': True, 'fd-num': False, 'time': True}
+  
+IsomorphicMatch中的函数有对 pseudo_sort_decls和pseudo_sort_ignore 的判断  
+  
+    def add_assignment(self, expr, val):  
+        ...
+        for d, sortname in pseudo_sort_decls:
+            if not expr.decl().eq(d): continue
+            if pseudo_sort_ignore[sortname]: return
+            self.add_assignment_uninterp(expr, val, sortname)
+            return
+        .....

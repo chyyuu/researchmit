@@ -199,6 +199,15 @@ open (                pn=SPathname,                 //SPathname = SFn， 是一�
 
         return ('ok', internal_ret_fd)                     
 
+执行完后
+idata = SInode.any(simsym.anon_name('dummy_idata'))
+idata的各个field是
+FuncDeclRef: SStruct_atime_nlink_data_ctime_mtime9
+_fieldlist={list}[('atime', <class 'simsym.SInt'>), ('nlink', <class 'simsym.SInt'>), ('data', <class 'symtypes.SList_SDataByte'>), ('ctime', <class 'simsym.SInt'>), ('mtime', <class 'simsym.SInt'>)]
+_fields={dict}{'atime': <class 'simsym.SInt'>, 'nlink': <class 'simsym.SInt'>, 'data': <class 'symtypes.SList_SDataByte'>, 'ctime': <class 'simsym.SInt'>, 'mtime': <class 'simsym.SInt'>}
+_z3name={str}'SStruct_atime_nlink_data_ctime_mtime9'
+
+
 ---------------------------------------------------------
 TLPI p80 4.6 Closing a File: close()
 
@@ -382,7 +391,26 @@ TLPI p279 15.1 Retrieving File Information: stat()
 
 --------------------------------------------------
 TLPI p1020 : 49.2 Creating a Mapping: mmap()
+Private file mapping:
+Private anonymous mapping: 
+Shared file mapping: 
+Shared anonymous mapping:
 
+Mappings are lost when a process performs an exec(), but are inherited by the
+child of a fork(). 
+创建一个vma后，在munmap中有 del self.getproc(pid).va_map[va] 操作
+没有考虑page fault的情况。
+没有考虑shared, private属性
+没有考虑anon清零的处理。
+
+    @model.methodwrap(anon=simsym.SBool,
+                      writable=simsym.SBool,
+                      fixed=simsym.SBool,
+                      va=SVa,
+                      fd=simsym.SInt,
+                      off=simsym.SInt,
+                      pid=SPid,
+                      internal_freeva=SVa)
     def mmap(self, anon, writable, fixed, va, fd, off, pid, internal_freeva):
         ## TODO: MAP_SHARED/MAP_PRIVATE for files
         ##       -> how to model delayed file read?
@@ -394,21 +422,78 @@ TLPI p1020 : 49.2 Creating a Mapping: mmap()
         myproc = self.getproc(pid)
         if not fixed:
             va = internal_freeva
-            simsym.assume(simsym.symnot(myproc.va_map.contains(va)))
-        vma = SVMA.any(simsym.anon_name('dummy_vma'))
-        vma.anon = anon
-        vma.writable = writable
+            simsym.assume(simsym.symnot(myproc.va_map.contains(va))) //表示出va不在va_map中的逻辑
+        vma = SVMA.any(simsym.anon_name('dummy_vma'))                //创建一个vma
+        vma.anon = anon                                              //vma的anonymous属性
+        vma.writable = writable                                      //vma的write属性
         if not anon:
-            if not myproc.fd_map.contains(fd):
-                return ('err', errno.EBADF)
-            if myproc.fd_map[fd].ispipe:
-                return ('err', errno.EACCES)
-            vma.off = off
-            vma.inum = myproc.fd_map[fd].inum
-        myproc.va_map[va] = vma
-        return ('ok', va)
+            if not myproc.fd_map.contains(fd):       
+                return ('err', errno.EBADF)     //如果 not anon && fd_map[fd]是空的，return EBADF
+            if myproc.fd_map[fd].ispipe:   
+                return ('err', errno.EACCES)    //cont....
+            vma.off = off                       // 如果不是 anon, 表示是file，且fd_map[fd]有效，在此情况下
+            vma.inum = myproc.fd_map[fd].inum   // 设置vma.off 和 vma.inum
+                                                // 
+        myproc.va_map[va] = vma                 // 执行到这里，可能是file,也可能是anon mem, 在任一情况下
+        return ('ok', va)                       // 设置va_map[va] = vma
 
-        
+
+-----------------------------------------------
+TLPI p1023 49.3 Unmapping a Mapped Region: munmap()
+
+
+    @model.methodwrap(va=SVa, pid=SPid)
+    def munmap(self, va, pid):
+        self.add_selfpid(pid)
+        del self.getproc(pid).va_map[va]    //直接删除va_map[va]
+        return ('ok',)        
+
+
+--------------------------------------------------------------
+TLPI P1045 50.1 Changing Memory Protection: mprotect()
+
+
+    @model.methodwrap(va=SVa, writable=simsym.SBool, pid=SPid)
+    def mprotect(self, va, writable, pid):
+        self.add_selfpid(pid)
+        myproc = self.getproc(pid)
+        if not myproc.va_map.contains(va): 
+            return ('err', errno.ENOMEM)       //如果va_map[fd]是空的，return ENOMEM
+        myproc.va_map[va].writable = writable  //设置va_map[va].writable = writable
+        return ('ok',)
+
+
+---------------------------------------------------------------
+    @model.methodwrap(va=SVa, pid=SPid, internal_time=simsym.SInt)
+    def mem_read(self, va, pid, internal_time):
+        self.add_selfpid(pid)
+        myproc = self.getproc(pid)
+        if not myproc.va_map.contains(va):
+            return ('signal', signal.SIGSEGV)   //如果va_map[fd]是空的，return SIGSEGV
+        if myproc.va_map[va].anon:
+            return ('data', myproc.va_map[va].anondata)//is anon mem, so read a databyte from va_map[va].anondata
+        ## TODO: memory-mapped reads don't bump atime?
+        internal_time = None
+        return self.iread(myproc.va_map[va].inum, myproc.va_map[va].off, internal_time) //file inode read
+
+    @model.methodwrap(va=SVa, databyte=SDataByte, pid=SPid, internal_time=simsym.SInt)
+    def mem_write(self, va, databyte, pid, internal_time):
+        self.add_selfpid(pid)
+        myproc = self.getproc(pid)
+        if not myproc.va_map.contains(va):
+            return ('signal', signal.SIGSEGV)
+        if not myproc.va_map[va].writable:
+            return ('signal', signal.SIGSEGV)
+        if myproc.va_map[va].anon:
+            myproc.va_map[va].anondata = databyte     // is anon mem, so write a databyte in va_map[va].anondata
+            return ('ok',)
+        ## TODO: memory-mapped writes don't bump mtime/ctime?
+        internal_time = None
+        return self.iwrite(myproc.va_map[va].inum, myproc.va_map[va].off,
+                           databyte, internal_time)   // file inode write
+
+---------------------------------------------
+
 inode级别的操作
 ---------------------------------------------
 TLPI p280 15.1 Retrieving File Information: stat() 下面是还没有考虑的属性
@@ -465,4 +550,161 @@ inode 级别的write
             self.i_map[inum].ctime = time
         return ('ok',)
         
-                                                            
+--------------------------------------------------
+对内部变量的描述和处理
+在IsomorphicMatch的process_model方法中
+    def process_model(self, model):
+        for decl in model:
+            ## Do not bother including "internal" variables in the wrapped model;
+            ## otherwise Z3 can iterate over different assignments to these
+            ## variables, while we care only about assignments to "external"
+            ## variables.
+            if '!' in str(decl) or 'internal_' in str(decl) or 'dummy_' in str(decl):
+                continue
+            self.process_decl_assignment(decl, model[decl], model)
+意味着对!, internal_, dummy_ 的变量不做处理          
+
+
+包含 internal_  的变量名
+-----------------
+spec.py
+
+    # Internal variables help deal with situations where, for the same
+    # assignment of initial state + external inputs, two operations both
+    # can commute and can diverge (depending on internal choice, like the
+    # inode number for file creation).
+    commute = simsym.symor(conds[()])
+    cannot_commute = simsym.symnot(simsym.exists(simsym.internals(), commute))
+
+simsym.py
+#
+# Helpers for tracking "internal" variables
+#
+
+internal_vars = {None: SInt.any('__dummy')}                                                            
+
+model.py
+l13: important
+                if arg.startswith('internal_'):
+                    simsym.add_internal(args[arg])
+
+
+simtype.py
+l94:           add_internal(v)
+
+
+chy@chyhome-PC:~/mit/sck/spec4$ grep -Hn internal *.py
+fs.py:175:                      internal_alloc_inum=SInum,
+fs.py:176:                      internal_ret_fd=simsym.SInt,
+fs.py:177:                      internal_time=simsym.SInt,
+fs.py:180:             internal_alloc_inum, internal_ret_fd, internal_time):
+fs.py:187:                simsym.assume(simsym.symnot(self.iused(internal_alloc_inum)))
+fs.py:198:                self.i_map[internal_alloc_inum] = idata
+fs.py:199:                pndirmap[pnlast] = internal_alloc_inum
+fs.py:201:                simsym.assume(internal_time > self.i_map[internal_alloc_inum].atime)
+fs.py:202:                simsym.assume(internal_time > self.i_map[internal_alloc_inum].mtime)
+fs.py:203:                simsym.assume(internal_time > self.i_map[internal_alloc_inum].ctime)
+fs.py:204:                self.i_map[internal_alloc_inum].atime = internal_time
+fs.py:205:                self.i_map[internal_alloc_inum].mtime = internal_time
+fs.py:206:                self.i_map[internal_alloc_inum].ctime = internal_time
+fs.py:216:                simsym.assume(internal_time > self.i_map[inum].mtime)
+fs.py:217:                simsym.assume(internal_time > self.i_map[inum].ctime)
+fs.py:218:                self.i_map[inum].mtime = internal_time
+fs.py:219:                self.i_map[inum].ctime = internal_time
+fs.py:224:        self.add_fdvar(internal_ret_fd)
+fs.py:225:        simsym.assume(internal_ret_fd >= 0)
+fs.py:226:        simsym.assume(simsym.symnot(self.getproc(pid).fd_map.contains(internal_ret_fd)))
+fs.py:233:                               otherfd < internal_ret_fd,
+fs.py:240:        self.getproc(pid).fd_map[internal_ret_fd] = fd_data
+fs.py:242:        return ('ok', internal_ret_fd)
+fs.py:245:                      internal_pipeid=SPipeId,
+fs.py:246:                      internal_fd_r=simsym.SInt,
+fs.py:247:                      internal_fd_w=simsym.SInt,
+fs.py:249:    def pipe(self, pid, internal_pipeid, internal_fd_r, internal_fd_w):
+fs.py:257:                               self.proc0.fd_map._map[xfd].pipeid == internal_pipeid])),
+fs.py:261:                               self.proc1.fd_map._map[xfd].pipeid == internal_pipeid]))])))
+fs.py:266:        self.pipes[internal_pipeid] = empty_pipe
+fs.py:269:        self.add_fdvar(internal_fd_r)
+fs.py:270:        simsym.assume(internal_fd_r >= 0)
+fs.py:271:        simsym.assume(simsym.symnot(self.getproc(pid).fd_map.contains(internal_fd_r)))
+fs.py:274:                               xfd < internal_fd_r,
+fs.py:278:        fd_r_data.pipeid = internal_pipeid
+fs.py:280:        self.getproc(pid).fd_map[internal_fd_r] = fd_r_data
+fs.py:283:        self.add_fdvar(internal_fd_w)
+fs.py:284:        simsym.assume(internal_fd_w >= 0)
+fs.py:285:        simsym.assume(simsym.symnot(self.getproc(pid).fd_map.contains(internal_fd_w)))
+fs.py:288:                               xfd < internal_fd_w,
+fs.py:292:        fd_w_data.pipeid = internal_pipeid
+fs.py:294:        self.getproc(pid).fd_map[internal_fd_w] = fd_w_data
+fs.py:296:        return ('ok', internal_fd_r, internal_fd_w)
+fs.py:299:                      internal_time=simsym.SInt)
+fs.py:300:    def rename(self, src, dst, internal_time):
+fs.py:315:            simsym.assume(internal_time > self.i_map[dstinum].ctime)
+fs.py:316:            self.i_map[dstinum].ctime = internal_time
+fs.py:319:    @model.methodwrap(pn=SPathname, internal_time=simsym.SInt)
+fs.py:320:    def unlink(self, pn, internal_time):
+fs.py:327:        simsym.assume(internal_time > self.i_map[inum].ctime)
+fs.py:328:        self.i_map[inum].ctime = internal_time
+fs.py:331:    @model.methodwrap(oldpn=SPathname, newpn=SPathname, internal_time=simsym.SInt)
+fs.py:332:    def link(self, oldpn, newpn, internal_time):
+fs.py:342:        simsym.assume(internal_time > self.i_map[inum].ctime)
+fs.py:343:        self.i_map[inum].ctime = internal_time
+fs.py:355:    @model.methodwrap(fd=simsym.SInt, pid=SPid, internal_time=simsym.SInt)
+fs.py:356:    def read(self, fd, pid, internal_time):
+fs.py:374:        r = self.iread(self.getproc(pid).fd_map[fd].inum, off, internal_time)
+fs.py:379:    @model.methodwrap(fd=simsym.SInt, off=simsym.SInt, pid=SPid, internal_time=simsym.SInt)
+fs.py:380:    def pread(self, fd, off, pid, internal_time):
+fs.py:388:        return self.iread(self.getproc(pid).fd_map[fd].inum, off, internal_time)
+fs.py:408:    @model.methodwrap(fd=simsym.SInt, databyte=SDataByte, pid=SPid, internal_time=simsym.SInt)
+fs.py:409:    def write(self, fd, databyte, pid, internal_time):
+fs.py:425:        return self.iwrite(self.getproc(pid).fd_map[fd].inum, off, databyte, internal_time)
+fs.py:427:    @model.methodwrap(fd=simsym.SInt, off=simsym.SInt, databyte=SDataByte, pid=SPid, internal_time=simsym.SInt)
+fs.py:428:    def pwrite(self, fd, off, databyte, pid, internal_time):
+fs.py:436:        return self.iwrite(self.getproc(pid).fd_map[fd].inum, off, databyte, internal_time)
+fs.py:479:                      internal_freeva=SVa)
+fs.py:480:    def mmap(self, anon, writable, fixed, va, fd, off, pid, internal_freeva):
+fs.py:490:            va = internal_freeva
+fs.py:523:    @model.methodwrap(va=SVa, pid=SPid, internal_time=simsym.SInt)
+fs.py:524:    def mem_read(self, va, pid, internal_time):
+fs.py:532:        internal_time = None
+fs.py:533:        return self.iread(myproc.va_map[va].inum, myproc.va_map[va].off, internal_time)
+fs.py:535:    @model.methodwrap(va=SVa, databyte=SDataByte, pid=SPid, internal_time=simsym.SInt)
+fs.py:536:    def mem_write(self, va, databyte, pid, internal_time):
+fs.py:547:        internal_time = None
+fs.py:549:                           databyte, internal_time)
+model.py:9:                if arg.startswith('internal_'):
+model.py:12:                if arg.startswith('internal_'):
+model.py:13:                    simsym.add_internal(args[arg])
+simsym.py:856:# Helpers for tracking "internal" variables
+simsym.py:859:internal_vars = {None: SInt.any('__dummy')}
+simsym.py:861:def add_internal(v):
+simsym.py:862:    internal_vars[str(v)] = v
+simsym.py:864:def internals():
+simsym.py:865:    return [v for _, v in internal_vars.iteritems()]
+spec.py:152:            ## Do not bother including "internal" variables in the wrapped model;
+spec.py:156:            if '!' in str(decl) or 'internal_' in str(decl) or 'dummy_' in str(decl):
+spec.py:397:    # can commute and can diverge (depending on internal choice, like the
+spec.py:400:    cannot_commute = simsym.symnot(simsym.exists(simsym.internals(), commute))
+symtypes.py:94:        add_internal(v)
+
+
+
+------------------------
+包含 dummy_ 的变量名
+------------------------
+
+
+
+chy@chyhome-PC:~/mit/sck/spec4$ grep -Hn dummy *.py
+fs.py:189:                ## Allocating dummy variables, then assigning or asserting
+fs.py:193:                data_empty = SData.any(simsym.anon_name('dummy_data'))
+fs.py:195:                idata = SInode.any(simsym.anon_name('dummy_idata'))
+fs.py:220:            data_empty = SData.any(simsym.anon_name('dummy_data'))
+fs.py:236:        fd_data = SFd.any(simsym.anon_name('dummy_fd_data'))
+fs.py:263:        empty_pipe = SPipe.any(simsym.anon_name('dummy_pipe'))
+fs.py:276:        fd_r_data = SFd.any(simsym.anon_name('dummy_fd_data'))
+fs.py:290:        fd_w_data = SFd.any(simsym.anon_name('dummy_fd_data'))
+fs.py:492:        vma = SVMA.any(simsym.anon_name('dummy_vma'))
+simsym.py:859:internal_vars = {None: SInt.any('__dummy')}
+spec.py:156:            if '!' in str(decl) or 'internal_' in str(decl) or 'dummy_' in str(decl):
+

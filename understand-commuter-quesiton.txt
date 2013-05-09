@@ -1,0 +1,4 @@
+spec.py L286 
+if not any([c.eq(cond) for c in self.conds])
+
+如何理解？
