@@ -1,4 +1,15 @@
+qemu mtrace 编译方法
+参考 README.mtrace
 
+/configure --prefix=PFX \
+            --target-list="x86_64-softmmu" \
+            --disable-kvm  \
+            --audio-card-list="" \
+            --disable-vnc-jpeg \
+            --disable-vnc-png \
+            --disable-strip
+
+make 
 
 ======================================================================================
 qemu add mtrace
