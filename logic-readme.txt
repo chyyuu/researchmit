@@ -13,6 +13,9 @@
 -------------------
 看完后，发现对"model checking"和"symbolic execution"还不够清楚，只得又看相关书籍，看不太懂，原因是忘了以前学习的数理逻辑，
 找了一些书籍，觉得比较好的资料有：
+0 一阶逻辑 http://en.wikipedia.org/wiki/First-order_logic  讲解了一阶逻辑的起源，历史，基本概念，挺好的
+First-order logic is a formal system used in mathematics, philosophy, linguistics, and computer science. It is also known as first-order predicate calculus, the lower predicate calculus, quantification theory, and predicate logic. First-order logic is distinguished from propositional logic by its use of quantified variables.
+
 1 "面向计算机科学的数理逻辑" ver2 有英文版"logic in computer science"，可以对照不少中英文翻译，且有例子，有基础部分”命题逻辑“，”谓词逻辑“，也讲解了一部分model checking的原理和实现技术，程序验证，模态逻辑，符号模型检测等。需要再读。
 
 2 "软件工程形式化方法与语言"，国内写的，还没读，有基础的：”命题逻辑“，”谓词逻辑“，“集合”，“对象”，“关系”，“函数”; 还看到了比较高级的：“refinement theory”求精理论，“type theory”类型理论，“时序逻辑”
@@ -85,7 +88,21 @@ Data Flow Analysis Theory and Practice， CRC, 2009
 
 2 Handbook.of.Practical.Logic.and.Automated.Reasoning,.Harrison,.CUP,.2009-use-ocaml 讲了如何具体实现自动reason，有一些细节不错，对理解SAT, SMT，COQ等是如何实现的有帮助，且用ocaml，值得深入看看。
 
+p427,or 449 对 Craig’s interpolation theorem的讲解
+If |= φ1 ⇒ φ2 then there is an ‘interpolant’ ψ, whose free variables and function and
+predicate symbols occur in both φ1 and φ2, such that |= φ1 ⇒ ψ and |= ψ ⇒ φ2 .
+
+We will find it more convenient to prove the following equivalent, which
+treats the two starting formulas symmetrically and fits more smoothly into
+our refutational approach.
+
+If |= φ1 ∧ φ2 ⇒ ⊥ then there is an ‘interpolant’ ψ whose only variables and function
+and predicate symbols occur in both φ1 and φ2 , such that |= φ1 ⇒ ψ and |= φ2 ⇒ ¬ψ.
+
+
+
 3 HANDBOOK OF SATISFIABILITY， P981容量很大，涉及SAT方方面面， 14章讲了“Bounded Model Checking”， 26章讲了“SMT”
+
 
 4 Concepts, Techniques, and Models of Computer Programming ，讲了如何建模 MIT教授 Peter Van Roy涉及了一个工具alloy来进行建模，有一篇文章提到用alloy 描述communativity(一个医疗系统中)
 

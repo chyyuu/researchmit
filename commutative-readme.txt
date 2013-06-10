@@ -1,3 +1,163 @@
+规范和逻辑是自己定的，在比较复杂的情况下，可以通过SMT等工具来帮你推出一些结论信息。
+
+commutative的规范
+"Semantics Based Commutativity Analysis of Object Methods" John Eberhard and Anand Tripathi   2005 P8
+-----------------------------------------------------------------------------------------------------------
+In his work, Weihl [16], [17], [18] identified commutativity relationships between pairs of operations. An operation
+was defined to include the parameters passed to the operation as well as the output of the operation. Weihl classified
+commutativity as two forms: forward and right backward commutativity. Informally, if two operations forward
+commute and are defined on a given state, then the effect of executing the operations in either order is the same.
+If operation β right backward commutes with operation α and it is possible to execute the operations in the order αβ,
+then executing the operations in the reverse order would have had the same effect. 
+
+使用the Method Specification Table (MST) which describes the semantics of an object’s methods
+来表示Method Commutativity Specification (MCS) 
+
+Method Specification Table (MST)包括：
+   1. e precondition (P) ： is a boolean predicate of the form f (T, p 1, ..., pn ), where T represents the state of the object and p1, ..., pn represent the parameters of the method.
+   2. method name (M) ：  Because a method may have different behavior under different conditions, a method may be described by more than one row.
+   3. state postcondition (S)： describes the effect of the method upon the state of the object. It has the form T ′ = g(T, p1, ..., pn ), meaning the new state,
+T’, of the object is determined by the function g which uses the current state of the object and the parameters of the method. 
+   4. output postcondition (R)： describes the value returned by the method. This predicate has the form Vi = h(T, p1, ..., pn), where Vi is the output value and the subscript i identifies the executed method. 
+例子:MST for a bank account object
+P           M                 S           R
+TRUE    withdraw(y)     bal’ = bal-y    V3 = OK
+...
+
+Hoare Logic expressions representing rows i and j of an MST.
+    Pi{Mi}Si ∧ Ri and Pj {Mj }Sj ∧ Rj
+
+In summary, the following expression represents the precondition and postcondition of executing the two methods
+as a sequence, Mi, Mj, where Pij , Sij , and Rij are derived as explained above.
+    Pi ∧ Pij {Mi; Mj }Sij ∧ Ri ∧ Rij
+ 
+
+
+
+"Exploiting the Commutativity Lattice"  Milind Kulkarni, 2011 PLDI
+-----------------------------------------------------------------------------------------------------------
+A commutativity specification is a set of logical formulae that rep-
+resent commutativity conditions for each pair of methods in a data
+structure.
+ The logic, L1, of these formulae is given in Figure 1. The
+vocabulary of the logic includes the arguments and return values of
+method invocations.
+
+
+
+
+commutative 满足的条件：
+"Semantics Based Commutativity Analysis of Object Methods" John Eberhard and Anand Tripathi   2005 P8
+-----------------------------------------------------------------------------------------------------------
+Consider a method group with a group precondition, PG , which defines sets of methods, where each set, M, consists
+of methods m1 , m2, ..., mn . This method group is a commutative method group if for every state of the object and
+every set M permitted by PG, and for all possible orderings of m 1, m2 , ..., mn, the following conditions are true.:
+• CC1 (Commutativity Condition 1) :
+The precondition for each method in set M is always true before the method’s execution, regardless of the order
+in which it is executed.
+• CC2 (Commutativity Condition 2):
+The final state of the object is the same for all possible orderings of m1 , m2, ..., mn .
+• CC3 (Commutativity Condition 3):
+Each method’s return value remains the same, regardless of the order in which it is executed.
+
+2) Using Hoare Logic to Analyze Commutativity: Given these three commutativity conditions, we can use the
+Hoare Logic representation of rows of the MST to determine whether those rows commute. We first consider the
+sequential execution of two methods. After determining the pair-wise commutativity of methods, the analysis is
+extended to larger groups of methods.
+For two methods Mi and Mj, the preconditions and postconditions for the two possible method sequences are the
+following:
+ Pi ∧ Pij{Mi ; Mj}Sij ∧ Ri ∧ Rij
+ Pj ∧ Pji{Mj ; Mi}Sji ∧ Rj ∧ Rji
+The two methods commute if they satisfy the three commutativity conditions. First, because of the definition of P ij
+and Pji , CC1 will alway be satisfied when Pi ∧ Pij ∧ Pj ∧ Pji is true. Let PR represent this required precondition
+(Pi ∧ Pij ∧ Pj ∧ P ji ). When choosing a group precondition, P G, it must be chosen such that P G ⊃ PR . In many cases
+PG can be chosen to be PR .
+Second, to satisfy CC2, the final state of the object for the two sequences must be the same when the precondition,
+PG, is true. If Sij is of the form, T ′ = gj (gi (T, ...), ...), and Sji is of the form, T ′ = gi(gj (T, ...)
+, ...), then the states are the same when gj (gi(T, ...), ...) = g i (gj (T, ...), ...). This is logically equivalent to stating
+that S ij ∧ Sji is true.
+Third, to satisfy CC3, the return values must be equal. If Ri is of the form, Vi = hi (T, ...), and R ji is of the form,
+Vi = hi(gj (T, ...)), then the return values are equal when hi(T, ...) = hi(gj (T, ...)). In other terms, Ri ∧ Rji is true
+when the precondition is true. Similarly, Rj ∧ Rij must also be true.
+
+这样可以得出如下逻辑表示是否可以commute的判断：
+
+1. Conjecture 1: PR ⊃ N OT (Sij ∧ Sji ∧ (Ri ∧ Rji) ∧ (Rj ∧ Rij ))  ：determine if the two methods do not commute. Two methods do not commute if the precon-
+dition is always false. Otherwise, if the precondition can be true, then the methods do not commute since one of the
+postconditions is false.
+
+2. Conjecture 2: PR ⊃ (Sij ∧ Sji ∧ (Ri ∧ Rji ) ∧ (Rj ∧ Rij )) ：determine if the methods commute。 This conjecture requires that when the precondition is true, then the postconditions are true
+
+3. Conjecture 3: PG ⊃ (Sij ∧ Sji ∧ (Ri ∧ Rji ) ∧ (Rj ∧ Rij ))：  show that CC2 and CC3 are satisfied when the group condition is true.
+
+4. Conjecture 4: PG ⊃ (Pi ∧ Pij ∧ Pj ∧ Pji) ： verify that the group condition is stricter than the precondition required by CC1.
+
+5. Conjecture 5: PR ∧ ( PG ) ⊃  (Sij ∧ Sji ∧ (Ri ∧ Rji ) ∧ (Rj ∧ Rij )) ： can be used to verify that the group precondition is complete.
+
+
+可进一步弱化某些逻辑表示  （Weakening of Consistency），进一步提高潜在并行性：
+ CC3 (Commutativity Condition 3) may be weakened.
+
+ We can weaken CC3 by permitting the return value to differ by some degree of imprecision. Instead of requiring the return values of a method for different sequences to be equivalent, we can require that they satisfy a certain function. 
+
+ For example, suppose that our imprecision function is weakReturn, then we can rewrite
+Conjecture 3 as the following Conjecture .
+Conjecture 6: PG ⊃ (Sij ∧ Sji ∧ weakReturn(Ri , Rji ) ∧ weakReturn(Rj , Rij ))
+
+
+
+"Exploiting the Commutativity Lattice"  Milind Kulkarni, 2011  PLDI
+--------------------------------------------------------------------------
+DEFINITION 3. A commutativity condition, φ, is a predicate on
+two method invocations m1(v1) σ1 and m2(v2 ) σ2 in an exe-
+cution history H that is true only if, for all histories H ≡C H
+that contain a sub-history h = m1 (v1), m2(v2) σ , m1(v1) and
+m2(v2) commute with respect to σ .
+In other words, a commutativity condition is a predicate φ that,
+when true in one history, means that in any C -EQUIVALENT history
+where the two method invocations happen back to back, the invo-
+cations commute. We say that a predicate is a valid commutativity
+condition if it satisfies the requirements of Definition
+
+
+------------------------------
+我的理解（基于CC1~CC3）：
+a,b 代表两个transtraction, method, or syscall.
+对于a,b 是syscall而言，a,b 的precondition 总是真
+
+state
+s'abn：表示执行完a,b后的obj内部状态（第n种）
+r'an：表示执行王a后的返回值（第ｎ种）
+
+则执行a,b 序列后return value
+ a  r1 b r2
+ b r2 b r1 
+ 
+ x (r1, r2)
+ x (r2, r1)
+
+对于a的内部实现，即objs为完成a的要求而要执行的动作的返回值和状态有n,m中  
+a return value:(ra1,...,ran), stats(sa1,..., sam)，
+b return value:(rb1,...,rbn), stats(sb1,....,sbm)
+
+a,b 执行完后的状态 Pij{Mi ; Mj}Sij
+
+a 执行完后的状态和返回值： {s11, r11}, {s1n, r1n}
+b 执行完后的状态和返回值： {s21, r21}, {s2n, r2n}
+
+a,b 执行完后的状态和返回值: {s'ab1, r'a1, r'b1}, {s'abn, r'an,r'bn}
+b,a 执行完后的状态和返回值: {s“ba1, r"b1, r"a1}, {s"ban, r"bn,r"an}
+
+如果二者可以commut，则
+需满足的性质：(r'a1=r"a1 AND r'b1=r"b1 AND s'ab1=s“ba1)  ...OR (r'an=r"an AND r'bn=r"bn AND s'abn=s“ban)
+
+
+
+
+
+
+
+------------------------------
 
 
 04/25/2013
