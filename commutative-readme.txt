@@ -1,7 +1,95 @@
+-------------------------------------------
+体会：
 规范和逻辑是自己定的，在比较复杂的情况下，可以通过SMT等工具来帮你推出一些结论信息。
+最近我一直在看一下与commuter paper相关的文章，书籍等。
+以前关注的是os的implementation，对抽象，规范，形式化描述等理解不深。
+我对形式逻辑，符号执行等相关基础知识要不忘了，要不理解不深入。
+为此补充学习了一些一阶逻辑，静态分析的基础知识之后，再回头看我两个月前看过的文章
 
+1 Commutativity-based concurrency control for abstract data structure-1988
+2 "Semantics Based Commutativity Analysis of Object Methods" John Eberhard and Anand Tripathi (05-004.pdf)
+3 Verification of semantic commutativy conditions-pldi11.pdf
+5 communitivity-submit.pdf 2013
+
+4 Exploiting the commutativity lattice. (PLDI), 2011.
+提到了 
+Speculative parallelization is a hot topic
+Recent efforts have argued that we should use semantic conflict detection
+   [Carlstrom et al. PPoPP07] [Ni et al. PPoPP07] [Kulkarni et al. PLDI07] [Herlihy & Koskinen
+PPoPP08, POPL2010]
+
+Key idea: exploit commutativity of method invocations
+
+问题：
+a) How can we implement a commutativity checker?
+b) How do we know our implementation is correct?
+c) How do we choose an implementation?
+d) What if our implementation has too much overhead? Does not allow enough parallelism?
+e) What we need is a systematic way to implement commutativity and reason about these questions
+
+用lattice表述
+a) the lower you go in the lattice, the stronger the commutativity condition
+b) The less likely the condition is to prove that two methods commute
+c) The more likely a transaction is to conflict with other transactions
+d) If all commutativity conditions are “false” then no methods commute and all transactions are
+serialized
+e) Exact effect on parallelism is application dependent
+
+结论
+a) Commutativity lattice provides a framework to reason about commutativity specifications
+b) Construction algorithms provide systematic way to build conflict checkers given a specification
+c) Can combine lattice and algorithms to provide disciplined approach to building and selecting conflict checkers for an application
+
+
+
+6 A comprehensive study of Convergent and Commutative Replicated Data Types 2011
+ Eventual consistency aims to ensure that replicas of some mutable shared
+object converge without foreground synchronisation. Previous approaches to eventual con-
+sistency are ad-hoc and error-prone. We study a principled approach: to base the design of
+shared data types on some simple formal conditions that are sufficient to guarantee even-
+tual consistency. We call these types Convergent or Commutative Replicated Data Types
+(CRDTs). This paper formalises asynchronous object replication, either state based or op-
+eration based, and provides a sufficient condition appropriate for each case. It describes
+several useful CRDTs, including container data types supporting both add and remove op-
+erations with clean semantics, and more complex types such as graphs, montonic DAGs,
+and sequences. It discusses some properties needed to implement non-trivial CRDTs.
+ 这篇文章虽然是针对分布式系统数据结构操作的抽象和形式化，但让我想起了oplog的设计实现思路。oplog其实也需要形式化一些东西。
+ 以后有时间需要深入看看。
+
+Limits of commutativity on abstract data types ， CISMOD'92 1992
+没有细看
+We present some formal properties of (symmetrical) commutativity, the
+major criterion used in transactional systems, which allow us to fully
+understand its advantages and disadvantages. The main result is that
+commutativity is subject to the same limitation as compatibility for
+arbitrary objects. However, commutativity has also a number of
+attracting properties, one of which is related to recovery and, to our
+knowledge, has not been exploited in the literature. Advantages and
+disadvantages are illustrated on abstract data types of interest. We also
+show how limits of commutativity have been circumvented, which gives
+guidelines for doing so (or not!).
+
+
+
+ Automating Commutativity Analysis at the Design Level， 2004
+虽然用的是alloy系统分析的一个传统的医院处理事务（也是commutativity），但其实有也说明了commutativity的应用广泛性。也许可以放到普适计算领域。
+
+Enforcing Commutativity Using Operational Transformation  VERICO 2011
+这里的shared document 是 Collaborative object, 实际讨论的是合作文档撰写问题。又是一个commutativity的应用广泛性的说明。
+
+
+
+，体会很不一样。一个体会是：
+1 抽象规范与设计实现有很大的区别和直接的联系。
+2 对一个问题的理解，最好从源头读起，看看这个问题（或一系列问题）是如何一步一步解决的。
+
+更深刻理解这个体会花了2个月. :(
+
+----------------------------------------------------
+
+ 
 commutative的规范
-"Semantics Based Commutativity Analysis of Object Methods" John Eberhard and Anand Tripathi   2005 P8
+"Semantics Based Commutativity Analysis of Object Methods" John Eberhard and Anand Tripathi (05-004.pdf)  2005 P8  rinard-pldi11.pdf是ppt，比较直观
 -----------------------------------------------------------------------------------------------------------
 In his work, Weihl [16], [17], [18] identified commutativity relationships between pairs of operations. An operation
 was defined to include the parameters passed to the operation as well as the output of the operation. Weihl classified
@@ -34,7 +122,7 @@ as a sequence, Mi, Mj, where Pij , Sij , and Rij are derived as explained above.
 
 
 
-"Exploiting the Commutativity Lattice"  Milind Kulkarni, 2011 PLDI
+"Exploiting the Commutativity Lattice"  Milind Kulkarni, 2011 PLDI  (Verification of semantic commutativy conditions-pldi11.pdf)
 -----------------------------------------------------------------------------------------------------------
 A commutativity specification is a set of logical formulae that rep-
 resent commutativity conditions for each pair of methods in a data
