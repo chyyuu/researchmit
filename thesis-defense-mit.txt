@@ -1,0 +1,42 @@
+Thesis Defense: Cycle-Accurate Modeling of Multicore Processors on FPGAs
+
+Speaker: Asif Khan, PhD Candidate, CSG-CSAIL-MIT
+Date: Wednesday, June 12 2013
+Time: 10:00AM to 12:00PM
+Location: Hewlett Room (32-G882)
+Host: Professor Arvind, CSG-CSAIL-MIT
+Contact: Sally Lee, 3-6837, sally@csail.mit.edu
+A major challenge in performance modeling of multicore processors is slow simulation speed. FPGAs provide a massively-parallel reconfigurable platform, ideal for speeding up processor simulations. FPGAs, however, are difficult to program, and the FPGA substrate is difficult to utilize efficiently. We present a novel modeling methodology which enables the generation of a high-performance, cycle-accurate simulator from a cycle-level specification of the target processor architecture. We describe Arete, a full-system multicore processor simulator, developed using our methodology. 
+We present clear evidence that the use of simplified models to speedup simulations can lead to wrong conclusions. Through two experiments performed using both cycle-accurate and simplified models, we show that on one hand there are substantial quantitative and qualitative differences in results, and on the other, the results match quite well.
+大约20多人
+先感谢 老师和提供帮助的学生，有silas
+在讲的时候，老师就在提问。讲到不到一半（debugging solution时），已经开始defense了，老师，学生轮番提问，答辩者积极为自己辩护。
+这样讲了1小时20分钟，然后老师起来与学生站在前面，接受进一步的提问。当然主要是学生回答问题。
+然后鼓掌通过！
+
+fpga model的问题和挑战：
+很底层，
+RTL不能很好匹配fpga
+solution: separation of "model clock" from "FPGA clock"
+
+contributions:
+new tech for building cycle-accurate models on fgpa, debuging
+
+cycle-level specification: Register File
+
+LI-BDN transformation: Register File
+
+Better Debugging solution for determinism, repeatability
+
+application: fpga based multicore simulator
+可以跑linux
+privite L1, shared L2, Dir conherent, network:share memory, message-passing. 8cores
+
+spec: 6K lines
+Refined LI-BDN: 9.5K lines
+
+移植平台
+XUPx5  ML605  BEE3
+
+core: in-order, 10-stage
+

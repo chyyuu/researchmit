@@ -641,8 +641,58 @@ curschedidx++，返回
 self是SBool类的实例对象，self._v就是z3 expr
 如果都有，则产生新的执行路径，并放到schedq中！
 
+--------------------------
+具体实例说明符号执行的处理过程，代码如下：
 
+class Counter(model.Struct):
+    __slots__ = ["counter"]
 
+    def __init__(self):
+        # XXX This name matters since it connects the initial counter
+        # value of different Counter objects.  Will this scale to more
+        # complex state?
+        #self.counter = simsym.SInt.any('Counter.counter')
+        self.counter = simsym.SInt.any('counter')
+
+        # simsym.assume(self.counter == 0)
+        add_pseudo_sort_decl(simsym.unwrap(self.counter).decl(), 'counter')
+
+    @model.methodwrap()
+    def sys_inc(self):
+        self.counter = self.counter + 1
+        return "ok"  
+
+    @model.methodwrap()
+    def sys_dec(self):
+        if self.counter > 0 :
+            self.counter = self.counter - 1
+            return "ok"
+        else:
+            return "err"
+
+分析一下执行 inc和dec的情况。进程a, 进程b
+inc只有一条路径，dec有两条路径
+第一次探测
+1 a.inc->ok, b.dec->ok,  result=(a.ok, b.ok), final_state（表示内部的执行状态，这里用的是counter的最后的表达式，和counter的关系来表示）=   counter+1-1, counter>0
+2 b.dec->ok, a.inc->ok   result=(a.ok, b.ok), final_state counter-1+1, counter>0
+如果要能够commtativity，则 1.result==2.result 这里是等的; 1.final_state==2.final_state 这样需要有 counter+1-1 == counter-1+1, 且 counter>0，这里就成了 counter为1时就可以了。
+
+第二次探测
+1 a.inc->ok,  b.dec=err, ....
+2 b.dec->ok,  a.inc->ok, ....
+结果不一致
+
+第三次探测
+1 a.inc->ok,   b.dec=err, ....
+2 b.dec->err,  a.inc->ok, ....
+有可以commtativity的条件，即comter=-1
+
+第四次探测
+1 a.inc->ok,   b.dec=ok, ....
+2 b.dec->err,  a.inc->ok, ....
+结果不一致
+
+这样就遍历了4次
 ---------------------------
 def methodwrap(**kwargs):
     def decorator(m):
@@ -687,7 +737,7 @@ class Struct(object):
         
  ============================
  MetaZ3Wrapper是一个type class，
- 而SExpr设置了属性__metaclass__，结果SInt, SArith,....都需要在创建类是执行MetaZ3Wrapper的__new__函数。
+ 而SExpr设置了属性__metaclass__，结果SInt, SArith,....都需要在创建类时执行MetaZ3Wrapper的__new__函数。
  
  class SExpr(Symbolic):
     __metaclass__ = MetaZ3Wrapper
@@ -773,7 +823,7 @@ class IsomorphicMatch(object):
 for callset in itertools.combinations_with_replacement(calls, args.ncomb):          // choose one syscall set, e.g. (open, close)
 ...
     for result, condlist in simsym.symbolic_apply(test, base, *callset).items():    // check (open,close) and (close, open)'s all exec path
-    ...
+    ...    //symbolic_apply ==> rv = fn(*args) ==> test (*args) --> calls[0|1]-->munmap
     for diverge, condlist in sorted(conds.items()):                                 // print some thing...
     ...
     for e in conds[()]:               
@@ -959,6 +1009,97 @@ pseudo_sort_decls = getattr(m, 'pseudo_sort_decls', [])
 
 pseudo_sort_ignore = getattr(m, 'pseudo_sort_ignore', {})
 {'file-length': True, 'file-nlink': True, 'fd-num': False, 'time': True}
+
+对 pseudo_sort_decls 和 pseudo_sort_ignore的分析
+以counter3.py为例
+pseudo_sort_decls = [
+# below line can replace add_pseudo_sort_decl(simsym.unwrap(self.counter).decl(), 'counter')  IN Counter.__init__
+    (simsym.unwrap(simsym.SInt.any('counter')).decl(),'counter'),
+]
+与 class Counter的__init__函数执行 add_pseudo_sort_decl(simsym.unwrap(self.counter).decl(), 'counter')的效果是一样的。
+一个decl() 是啥意思? 在z3.py中,decal是一个z3 application的函数申明，如果是符号变量，这函数申明是符号变量本身，可看下面的例子
+-----------------------------------------
+    def decl(self):
+        """Return the Z3 function declaration associated with a Z3 application.
+        
+        >>> f = Function('f', IntSort(), IntSort())
+        >>> a = Int('a')
+        >>> t = f(a)
+        >>> eq(t.decl(), f)
+        True
+        >>> (a + 1).decl()
+        >>> t.decl()
+        Out[15]: f
+        >>> a.decl()
+        Out[16]: a
+        >>> (a+1).decl()
+        Out[17]: +
+        
+        >>> (a+1-1).decl()
+        Out[18]: -
+
+        >>> (a+1*1).decl()
+        Out[19]: +
+
+        >>> (a/1*1).decl()
+        Out[20]: *
+------------------------------------------
+在这里，用来表示了struct的各个field不用不要做nosame操作。
+
+比如 在fs.py中，有
+pseudo_sort_decls = [
+    (SInode.__z3_sort__.nlink, 'file-nlink'),
+    (SData.__z3_sort__._len, 'file-length'),
+    (SInode.__z3_sort__.atime, 'time'),
+    (SInode.__z3_sort__.mtime, 'time'),
+    (SInode.__z3_sort__.ctime, 'time'),
+    (SVMA.__z3_sort__.off, 'file-length'),
+]
+
+这里的__z3_sort__是干啥的？
+在Symbolic class的定义中有描述
+    A subclass of Symbolic must have a __z3_sort__ class field giving
+    the z3.SortRef for the value's type.  Subclasses must also
+    implement the _z3_value and _wrap_lvalue methods."""
+在fs.py中，有如下内容：
+class SFn(simsym.SExpr, simsym.SymbolicConst):
+    __z3_sort__ = z3.DeclareSort('Fn')   //z3.DeclareSort：：Create a new uninterpred sort named `name`.
+
+## Ignore some pseudo sort names altogether when enumerating models.
+
+pseudo_sort_ignore = {
+    'file-nlink': True,     ## unused for test generation
+    'file-length': True,    ## too many cases in link*link
+    'time': True,           ## irrelevant for test generation for now
+    'fd-num': False,
+}
+
+而对于struct而言，看看下面的函数
+def tstruct(**fields):
+    """Return a subclass of SStructBase for a struct type with the
+    given fields.  'fields' must be a dictionary mapping from names to
+    symbolic types."""
+
+    name = "SStruct_" + "_".join(fields.keys())
+    z3name = anon_name(name)
+    sort = z3.Datatype(z3name)
+    fieldList = fields.items()
+    sort.declare(z3name, *[(fname, typ._z3_sort()) for fname, typ in fieldList])
+    sort = sort.create()
+
+    type_fields = {"__slots__": [], "_fields": fields, "_fieldList": fieldList,
+                   "_z3name": z3name, "__z3_sort__": sort,
+                   "_ctor": getattr(sort, z3name)}
+    return type(name, (SStructBase,), type_fields)
+
+有 "__z3_sort__": sort在SStructBase中，而sort是一个z3的DataType，
+在 sort.declare(z3name, *[(fname, typ._z3_sort()) for fname, typ in fieldList])语句执行后
+此结构下的所有的fields(包括field name和 filed type，已经申明在sort中了)
+
+这样SInode.__z3_sort__.ctime，其实就代表了SInode struct中的一个field 即ctime 
+
+
+
   
 IsomorphicMatch中的函数有对 pseudo_sort_decls和pseudo_sort_ignore 的判断  
   
@@ -970,3 +1111,6 @@ IsomorphicMatch中的函数有对 pseudo_sort_decls和pseudo_sort_ignore 的判�
             self.add_assignment_uninterp(expr, val, sortname)
             return
         .....
+        
+        
+ 

@@ -45,9 +45,14 @@ Symbolic Define
                       SymbolicConst        SExpr            SMapBase             SStructBase           SListBase        SDictBase        SSetBase     SBagBase
                                            z3.ExprRef        tmap                  tstruct        tstruct(tmap,SInt) tstruct(tmap,tmap) tstruct(tmap) tstruct(tmap)
                     immutable values        __str__     sort = z3.ArraySort   sort = z3.Datatype    _vals, _len       _map  _valid        _bmap         _imap
-                    any(cls, name=None)    __repr__
+                    any(cls, name=None)    __repr__       
                     _wrap_lvalue(cls,...)  _z3_value
-                      
+         参数                                         (indexType,valueType)     (**fields)        (valueType)   (keyType, valueType) (valueType)(valueType)         
+
+ 调用tstruct的参数   tlist::tstruct(_vals = tmap(SInt, valueType), _len = SInt) 
+                    tdict::tstruct(_map = tmap(keyType, valueType),_valid = tmap(keyType, SBool)) 
+                    tset::tstruct(_bmap = mapType)    mapType = tmap(valueType, SBool) ???
+                    tbag::tstruct(_imap = mapType)    mapType = tmap(valueType, SInt) ???
                        |                     |
  -------------------------------         ----------------------------------------------------------------------------------------------------------------
                                            |                |                              |                                 |           |             |
@@ -114,7 +119,76 @@ Symbolic Define
   
   
   
-  
+对fs model初始化的了解
+--------------------------------
+执行 fs.py的Fs.__init__ 函数的语句时
+        self.proc0 = SProc.any('Fs.proc0')
+           --> Symbolic.any(Fs.proc0)
+              -->Symbolic._new_lvalue(z3.Const(name, cls._z3_sort()))  
+              //备注-----------------------------
+                 这里看到 cls._z3_sort()的结果为DatatypeSortRef: SStruct_pfd_map_pva_map9
+                 而cls为 <class 'simsym.SStruct_pfd_map_pva_map'> 
+                 注意这个cls的类名来源于tstruct函数的语句
+                       name = "SStruct_" + "_".join(fields.keys())    //classname=SStruct_pfd_map_pva_map
+                而z3_sort的名字来源于：
+                       z3name = anon_name(name)
+                       sort = z3.Datatype(z3name)                     //sort=SStruct_pfd_map_pva_map9  
+                这个类的type_fields的赋值在tstruct函数随后的语句中
+                type_fields = {"__slots__": [], "_fields": fields, "_fieldList": fieldList,
+                               "_z3name": z3name, "__z3_sort__": sort,
+                               "_ctor": getattr(sort, z3name)}  
+                最后调用type创建了一个新类，其基类是SStructBase：
+                return type(name, (SStructBase,), type_fields)   类产生了，其类名是SStruct_pfd_map_pva_map，对应的z3 sort是SStruct_pfd_map_pva_map9 
+              //---------------------------------
+              _new_lvalueh函数：：Return a new instance of Symbolic with the given initial value ，此函数参数为：DatatypeRef: Fs.proc0，就是一个逻辑符号数
+                  此函数执行如下语句：
+                  obj = cls._wrap_lvalue(lambda: val[0], setter)
+                  结果是调用了 SStructBase._wrap_lvalue(cls, getter, setter): 这里参数 
+                           cls为<class 'simsym.SStruct_pfd_map_pva_map'>
+                           getter <function <lambda> at 0x208cb90> , 其func_code=<code object <lambda> at 0x1b82430, file "simsym.py", line 64>
+                           setter <function setter at 0x208cb18>,其func_code=<code object setter at 0x1b823b0, file "simsym.py", line 62>
+                           这里 L64 即是在_new_lvalueh函数定义的lambda: val[0]，即返回val[0]
+                           这里 L62 即是在_new_lvalueh函数定义的 setter,即 val[0] = nval
+                           
+                        -->SStructBase._wrap_lvalue(cls, getter, setter)
+                           执行了obj = cls.__new__(cls) ， 执行完句后，
+                           属于类simsym.SStruct_pfd_map_pva_map 的对象产生了，即<simsym.SStruct_pfd_map_pva_map object at 0x208fdd0>
+                           object.__setattr__(obj, "_getter", getter)
+                           object.__setattr__(obj, "_setter", setter)
+                           上面3条语句不能step in ,说明是很底层的实现了，我理解含义是 obj._getter=getter,   obj._setter=setter，这样可以用来给obj设置新的属性用，
+                           而这个属性保存在对象的val[0]中，注意：在上面执行到_new_lvalue时，val[0]=Fs.proc0，也就是说obj.val[0]保存了逻辑符号数
+                           
+                   到这里，_new_lvalueh函数中的这句话 obj = cls._wrap_lvalue(lambda: val[0], setter) 才算执行完毕。
+                   
+                   接下来执行 assume(cls._assumptions(obj))这句话，此语句进一步调用
+                        -->Symbolic._assumptions(cls, obj)  此函数直接 return obj.init_assumptions()
+                             -->Symbolic.init_assumptions(self)  此函数直接 return wrap(z3.BoolVal(True))  即 返回{SBool}True
+                               此函数先调用 z3.BoolVal(val, ctx=None), 这里的val 是{bool} True 
+                                   return BoolRef(Z3_mk_true(ctx.ref()), ctx)
+                                        Z3_mk_true(ctx.ref())返回了一个AST表示true
+                                   最后z3.BoolVal(True)的返回值是 BoolRef: True，即一个z3的逻辑值，为True
+                                   wrap函数是一个封装函数，流程如下：
+                                     先isinstance(ref, (bool, int, long, float))？ 这里ref的类型是BoolRef，值为True，当然就不是bool/int/long/float类型的一个具体值了。                                  再if not isinstance(ref, z3.ExprRef)？ BoolRef是z3.ExprRef的一个instance，这样不用报告异常了！
+                                     下面是具体封装过程：
+                                        如果是int的， return SInt._wrap(ref)
+                                        如果是算术表达式Arith， return SArith._wrap(ref)
+                                        最后只能是SExpr了， return SExpr._wrap(ref)
+                                        如果是z3.BoolRef)(正好是！！！)，return SBool._wrap(ref)，
+                                               结果调用的是MetaZ3Wrapper_wrap(cls, z3ref) cls=<class 'simsym.SBool'>, z3ref=BoolRef: True
+                                               这个函数的作用 是：Construct an instance of 'cls' wrapping the given Z3 ref object.
+                                                  obj = cls.__new__(cls)  执行完后 obj={SBool}True
+                                                  obj._v = z3ref          执行完后， obj._v=BoolRef: True
+                                                  return obj               返回！！！ obj={SBool}True
+                         
+                         -->调用assume({SBool}True)了                      
+                                先执行assume_list.append(e)  ，执行完毕后 （注意assume_list是一个全局变量）
+                                  assume_list=[And(True, ForAll(anon12, True)), True]        
+
+                            
+                            
+                           
+
+
 syscall logic                  
 -------------------------------------------------
 TLPI p72 4.3 Opening a File: open()
