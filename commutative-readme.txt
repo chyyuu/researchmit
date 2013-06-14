@@ -479,7 +479,7 @@ r[idx] = calls[idx](s, chr(idx + ord('a')), seqname)  //s是类fs.Fs的一个obj
  s=base()      //是类fs.Fs的一个object实例
  r={}
 所以先后调用  
-  r[0]=munmap(fs.Fs object, a, ab) 
+  r[0]=munmap(fs.Fs object, a, ab)  
   r[1]=munmap(fs.Fs object, b, ab) 
   
   all_s.append(s)
@@ -490,6 +490,7 @@ r[idx] = calls[idx](s, chr(idx + ord('a')), seqname)  //s是类fs.Fs的一个obj
   call[1](s,b,ab)
   all_s=  [<fs.Fs object at 0x32d61b0>]
   all_r= [{0: ('ok',), 1: ('ok',)}] 这说明a/b执行munmap的某个分支执行完毕，a/b返回ok
+
 
   
 2）接下来需要在执行 b, a调用顺序，
@@ -604,6 +605,41 @@ test函数测试完毕ab和ba，得到两次的result和state,接下来就是进
 看看这两次的r和s是否相同
 结果两次比较都是相等的，所以diverage=()，所以test返回为()
 
+---------------------------------------
+用counter再分析一下spec.py的test函数 
+
+def test(base, *calls):
+    all_s = []
+    all_r = []
+
+    for callseq in itertools.permutations(range(0, len(calls))):  其实就两次大循环 callseq=(0, 1)， callseq=(1, 0)
+        s = base()  这里创建了Counter.counter类的一个obj，其实执行了Counter.counter的__init__函数，完成了对环境的初始化
+        r = {}      还没有任何返回结果，所以为null
+        seqname = ''.join(map(lambda i: chr(i + ord('a')), callseq)) // 第一次循环 seqname='ab'，callseq=(0, 1), 下一次循环 seqname='ba',callseq=(1, 0)
+        for idx in callseq:  //在第二次大循环时， 这个内循环中 idx=0, then 1; 在第二次大循环时，这个内循环中 idx=1, then 0
+            r[idx] = calls[idx](s, chr(idx + ord('a')), seqname)  //  r[i]代表执行第i个函数的结果，在这两重循环下，会执行 
+                                                                  //  第一次s=new obj, r=null, r[0]=f[0], r[1]=f[1], s=f[0].f[1]；  
+                                                                  //  第二次s‘=new obj, r’=null, r‘[1]=f[1], r’[0]=f[0], s‘=f[0].f[1]；  
+        all_s.append(s)
+        all_r.append(r)
+
+    diverge = ()
+    //比较 r==r' or  s==s'  如果有相等的，说明可以commutativity!!!
+    if simsym.symor([all_r[0] != r for r in all_r[1:]]):   
+        diverge += ('results',)
+    if simsym.symor([all_s[0] != s for s in all_s[1:]]):
+        diverge += ('state',)
+
+    ## XXX precisely keeping track of what diverges incurs overhead.
+    ## Avoid the needless book-keeping for now.
+    if len(diverge) == 0: return ()
+    return ('something',)
+
+注意，在执行test过程中，会有分叉，这时，选择一个点继续走，但把分叉点记录下了似的shcedq增加了一个执行点（比如执行了yes的那个点，且会记录no的逻辑关系，并会控制返回条件为no）。
+执行完毕，返回到调用test的函数symbolic_apply时，会让symbolic_apply继续调用test. 
+再次执行test, test继续调用counter中的函数，当函数执行到分叉点时，由于记录了当时的逻辑关系，所以会选择no点继续执行，这样就实现了对所有分支的执行了！！！    
+-------------------------------------------------------
+
 这时回到了symbolic_apply中，由于schedq中新加入了一个节点（注意前面asssume和getproc函数中的if）
 结果cursched中有7个节点，在symbolic_apply再次执行test函数前:
     cursched是取出的一个schedq中节点
@@ -694,6 +730,7 @@ inc只有一条路径，dec有两条路径
 
 这样就遍历了4次
 ---------------------------
+
 def methodwrap(**kwargs):
     def decorator(m):
         def wrapped(self, whichcall, whichseq):
@@ -1113,4 +1150,106 @@ IsomorphicMatch中的函数有对 pseudo_sort_decls和pseudo_sort_ignore 的判�
         .....
         
         
+ ---------------------------------------
+counter4.py 实现分支的分析。只有内部状态counter，没用调用参数
+
+对counter5.py的分析。
+ 在counter5中，增加了syscall的调用参数。发现可能出现无限多的测试例子产生。
+ 仔细分析，发现 第一可以通过把表示内部状态的counter限制一下（其实就是抽象counter,比如理解为，有三种状态：
+ belowflow, normal, overflow，即可）。否则继续即使通过pseudo_sort_decls pseudo_sort_ignore和设置为true也没用，
+ 因为如果有表达式包含了conuter, 比如 sysnum+counter>10，在这种情况下，可以产生无穷多的counter。
+ 
+ 即使限制了counter，但如果不限制syscallnum，也会产生无穷多的例子，比如
+ b.sys_dec.num+a.sys_inc.num > 10,这样即使没用counter表示内部状态，也会产生无穷多的例子。
+
+ 所以，需要进一步抽象，形成有限状态和基于有限状态的逻辑，这样就应该可以了。
+ 
+counter6.py 增加间接引用 
+
+问题：缺少一个structvector，这样就可以比较方便地实现一个小范围的struct，而不要用map (即array)来搞定
+
+本来设计如下：不考虑动态分配counter or fd
+
+SFd = symtypes.tstruct(idx=simsym.SInt, ctnum=simsym.SInt)
+
+        self.fd1=SFd.any('Ct.fd1')
+        self.fd2=SFd.any('Ct.fd2')
+
+        self.counter1 = simsym.SInt.any('Ct.counter1')
+        self.counter2 = simsym.SInt.any('Ct.counter2')
+
+        add_pseudo_sort_decl(simsym.unwrap(self.counter1).decl(), 'Ct.counter1')
+        add_pseudo_sort_decl(simsym.unwrap(self.counter2).decl(), 'Ct.counter2')
+        
+fd1.1->counter1
+fd1.2->counter2
+
+fd2.1->counter1
+fd2.2->counter2
+
+系统调用参数（idx, num)
+表明对counter[idx]= counter[idx]+num
+
+结果发现在实现sys_inc时,只需
+
+        if(idx==1):
+            self.counter1== self.counter1 + num
+        else:
+            self.counter2== self.counter2 + num
+        return "ok"
+即可。
+但会出现大量的idx实例，为例减少，增加约束
+  simsym.assume(idx>-2 and idx<2)
+这样 sys_inc sys_inc 等可以通过，
+
+但sys_dec sys_dec又不行了,因为num会有很多赋值
+于是进一步加强限制
+simsym.assume(idx>-2 and idx<2 and num>-2 and num<2)
+
+ＯＫ了！
+
+在实现时，发现fd啥的间接引用没啥用。
+因为，可以直接访问 counter1 or counter2这样的共享变量！
+其实需要的是从syscall variable ---> state variable的关系就够了。
+pointer在这里没用！！！
+-----------------------------------
+缺少动态性创建的一些描述，如何表示有，无？，如果无了，还可以创建出有来
+看来需要counter7.py
+先想到如何模仿处理 IntVector('x', 3)， 在ipy上做了一些实验
+i=2
+'%s__%s' % ('x', i)
+Out[6]: 'x__2'
+
+[ ('%s__%s' % ('x', i)) for i in range(3) ]
+Out[5]: ['x__0', 'x__1', 'x__2']
+
+[ Int('%s__%s' % ('x', i)) for i in range(3) ]
+Out[2]: [x__0, x__1, x__2]
+
+那么，我要创建一个conunter, 如何做？
+
+第一次s=new obj, r=null, r[0]=f[0], r[1]=f[1], s=f[0].f[1]；  
+第二次s‘=new obj, r’=null, r‘[1]=f[1], r’[0]=f[0], s‘=f[0].f[1]；  
+然后：
+比较 r==r' or  s==s'  如果有相等的，说明可以commutativity!!!
+
+调整一下__init__ 看看能否实现分叉？
+
+counter7.py实现了__init__中的分叉。其实很简单。
+设计了一个sys_null的函数 （也需要考虑cc）。这样的目的是确保整个逻辑上的执行路径是可达的，且相关表述状态的变量是存在的。
+在init中，用了一个cc的 SBool，用来表示本来就有和没有两种情况，然后设置两种状态。
+ OK了！
+ 
+---------------------------
+counter8.py考虑如何实现share，即两个变量其实指的是一个符号
+
+-------------------------------------------
+现在开始思考 fs+vma的问题，用fs2.py来考虑
+观点：
+1 指针的规范设计完全没必要，多余！（如果抽象和spec不考虑内核的内存分配问题的话）
+2 关键是表达出在某个env下，系统调用的参数对状态的影响（用逻辑关系表示，便于SMT推理）。
+
+os env的表述 （env由状态组成）
+1 os evn是有多种状态的，所以需要在__init__中表达出来
+
  
