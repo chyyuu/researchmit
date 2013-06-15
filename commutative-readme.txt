@@ -1239,11 +1239,128 @@ counter7.py实现了__init__中的分叉。其实很简单。
 设计了一个sys_null的函数 （也需要考虑cc）。这样的目的是确保整个逻辑上的执行路径是可达的，且相关表述状态的变量是存在的。
 在init中，用了一个cc的 SBool，用来表示本来就有和没有两种情况，然后设置两种状态。
  OK了！
- 
+---------------------------
+counter7_struct.py 增加了如果有嵌套结构的分析
+类型申明
+SFd = symtypes.tstruct(idx=simsym.SInt, ctnum=simsym.SInt)
+SPr = symtypes.tstruct(id=simsym.SInt, fd=SFd)
+SCt = symtypes.tstruct(cter=simsym.SInt, ctnum=simsym.SInt) 
+
+        self.cter1 = simsym.SInt.any('Ct.cter1')
+        self.cter2 = simsym.SInt.any('Ct.cter2')
+
+        self.pr1=SPr.any("Ct.pr1")
+        self.pr2=SPr.any("Ct.pr2")
+
+        self.fd1=SFd.any('Ct.fd1')
+        self.fd2=SFd.any('Ct.fd2')
+
+L1:     self.pr1.fd=self.fd1  //注意这两句，其实self.pr1.fd成了self.fd1的另外一个别名，都是指的符号变量Ct.fd1
+L2:     self.pr2.fd=self.fd2  //这其实以为着没有对self.pr1.fd进行任何实际符号变量的指定
+
+        self.ct1 = SCt.any('Ct.ct1')
+        self.ct2 = SCt.any('Ct.ct2')
+
+        simsym.assume(simsym.symeq(self.pr1,self.pr2)) 
+        //如果执行L1和L2，或写成如下两句
+            self.pr1.fd=SFd.any('Ct.fd1')
+            self.pr2.fd=SFd.any('Ct.fd2')
+        则这一句的逻辑 And(Ct.fd1 == Ct.fd2, id(Ct.pr2) == id(Ct.pr1))
+        生成的例子为：
+        {'Ct.fd2': {'ctnum': 4, 'idx': 2}, 'Ct.pr2': {'fd': {'ctnum': 3, 'idx': 2}, 'id': 5}, 'Ct.fd1': {'ctnum': 4, 'idx': 2}, 'Ct.pr1': {'fd': {'ctnum': 1, 'idx': 0}, 'id': 5}}
+        
+        //如果没有执行，则这一句的逻辑  Ct.pr1 == Ct.pr2， 这样生成的例子为：
+        {'Ct.pr2': {'fd': {'ctnum': 0, 'idx': 0}, 'id': 0}, 'Ct.pr1': {'fd': {'ctnum': 0, 'idx': 0}, 'id': 0}}
+
+        如果写成
+        simsym.assume(simsym.symeq(self.pr1.fd,self.fd1))
+        self.pr2.fd=self.fd2
+        
+        simsym.assume(simsym.symeq(self.pr1,self.pr2))
+        则逻辑表达式为
+        can commute: 
+          And(Ct.fd1 == fd(Ct.pr1),
+              Ct.pr1 == SStruct_fd_id2(Ct.fd2, id(Ct.pr2)))
+        测试用例为  
+New assignment 0 : {'Ct.fd2': {'ctnum': 0, 'idx': 1}, 'Ct.pr2': {'fd': {'ctnum': 2, 'idx': 3}, 'id': 4}, 'Ct.fd1': {'ctnum': 0, 'idx': 1}, 'Ct.pr1': {'fd': {'ctnum': 0, 'idx': 1}, 'id': 4}}
+
+        如果写成
+        simsym.assume(simsym.symeq(self.pr1.fd,self.fd1))
+        simsym.assume(simsym.symeq(self.pr2.fd,self.fd2))
+        
+        simsym.assume(simsym.symeq(self.pr1,self.pr2))
+        则逻辑表达式为
+        can commute: 
+            And(Ct.fd1 == fd(Ct.pr1),
+                Ct.fd2 == fd(Ct.pr2),
+                Ct.pr1 == Ct.pr2)
+        测试用例为  
+        {'Ct.fd2': {'ctnum': 0, 'idx': 1}, 'Ct.pr2': {'fd': {'ctnum': 0, 'idx': 1}, 'id': 2}, 'Ct.fd1': {'ctnum': 0, 'idx': 1}, 'Ct.pr1': {'fd': {'ctnum': 0, 'idx': 1}, 'id': 2}}
+
+        
+所以，为了建立两个结构变量的联系（没有指针），需要在两个结构上设置一个INum(不解释的结构), or SInt, 让 a.num==b.INum
+或 用 simsym.assume(simsym.symeq(self.pr1.fd,self.fd1)) 来表示
+
+比如我先让pr1和pr2都指向pr1, pr1.fd 和pr2.fd都指向fd1, fd1和fd2都指向ct1, ct1, ct2都指向cter1
+        simsym.assume(simsym.symeq(self.pr1,self.pr2))
+        simsym.assume(simsym.symeq(self.pr1.fd,self.fd1))
+        simsym.assume(simsym.symeq(self.pr2.fd,self.fd1))
+        simsym.assume(simsym.symeq(self.fd1.ct,self.ct1))
+        simsym.assume(simsym.symeq(self.fd2.ct,self.ct1))
+        simsym.assume(simsym.symeq(self.ct1.cter,self.cter1))
+        simsym.assume(simsym.symeq(self.ct2.cter,self.cter1))
+        
+  can commute: 
+    And(Ct.pr1 == Ct.pr2,
+        Ct.fd1 == fd(Ct.pr1),
+        Ct.ct1 == ct(Ct.fd1),
+        Ct.ct1 == ct(Ct.fd2),
+        Ct.cter1 == cter(Ct.ct1),
+        Ct.cter1 == cter(Ct.ct2))        
+具体值
+New assignment 1 : {'Ct.cter1': 5, 'Ct.pr2': {'fd': {'ctnum': 0, 'idx': 1, 'ct': {'cter': 5, 'ctnum': 2}}, 'id': 8}, 'Ct.ct2': {'cter': 5, 'ctnum': 7}, 'Ct.ct1': {'cter': 5, 'ctnum': 2}, 'Ct.pr1': {'fd': {'ctnum': 0, 'idx': 1, 'ct': {'cter': 5, 'ctnum': 2}}, 'id': 8}, 'Ct.fd2': {'ctnum': 3, 'idx': 4, 'ct': {'cter': 5, 'ctnum': 2}}, 'Ct.fd1': {'ctnum': 0, 'idx': 1, 'ct': {'cter': 5, 'ctnum': 2}}}
+        
+好像比较合理！
+        
+是否考虑加一个__end__ 表明 a,b 或 b,a 执行完后的fix point的逻辑表达式？   
+   
 ---------------------------
 counter8.py考虑如何实现share，即两个变量其实指的是一个符号
-
+这样不太具有扩展性，且写起来比较费事。
 -------------------------------------------
+counter3_assume.py的考虑，
+看看 assume 在代码执行前后的区别是啥
+在__init__中，加了如下语句
+        self.counter = simsym.SInt.any('counter')
+        simsym.assume(self.counter == 0)
+
+在sys_inc中，这样写
+    def sys_inc(self):
+L1：    #simsym.assume(self.counter>0)
+        self.counter = self.counter + 1
+L2：    #simsym.assume(self.counter>0)
+        return "ok"
+
+如果执行L1,结果是没有commuter，因为逻辑为 simsym.assume(counter == 0) ^ simsym.assume(self.counter>0)        
+如果执行L2,结果是有commuter，因为由于执行了
+self.counter = self.counter + 1
+这时self.counter的符号值为 counter+1 
+所以逻辑为 
+simsym.assume(self.counter == 0)  simsym.assume(self.counter+1>0)        
+这样是可以通过的。
+
+另外，如果在__init__中，加入了
+        self.compare = simsym.SBool.any('mycomp')
+        simsym.assume(self.compare == False)
+
+而在sys_inc中加入
+        simsym.assume(self.compare == True)
+
+则会矛盾，得不出commuter, 因为simsym.assume(self.compare == False) AND simsym.assume(self.compare == True)
+所以在写assume时需要比较谨慎
+        
+
+----------------------------------------------------------------------------        
 现在开始思考 fs+vma的问题，用fs2.py来考虑
 观点：
 1 指针的规范设计完全没必要，多余！（如果抽象和spec不考虑内核的内存分配问题的话）
