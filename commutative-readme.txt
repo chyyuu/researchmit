@@ -71,14 +71,11 @@ guidelines for doing so (or not!).
 
 
 
- Automating Commutativity Analysis at the Design Level， 2004
+Automating Commutativity Analysis at the Design Level， 2004
 虽然用的是alloy系统分析的一个传统的医院处理事务（也是commutativity），但其实有也说明了commutativity的应用广泛性。也许可以放到普适计算领域。
 
 Enforcing Commutativity Using Operational Transformation  VERICO 2011
 这里的shared document 是 Collaborative object, 实际讨论的是合作文档撰写问题。又是一个commutativity的应用广泛性的说明。
-
-
-
 ，体会很不一样。一个体会是：
 1 抽象规范与设计实现有很大的区别和直接的联系。
 2 对一个问题的理解，最好从源头读起，看看这个问题（或一系列问题）是如何一步一步解决的。

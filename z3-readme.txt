@@ -251,3 +251,94 @@ figure 1.2 推理过程
 
 1.3 SMT-Solving via Reduction to SAT 没有看得太明白
 
+
+相关类型说明：
+枚举类型： 应该可以用于ne, eq比较
+
+Color = Datatype('Color')
+Color.declare('red')
+Color.declare('green')
+Color.declare('blue')
+Color = Color.create()
+
+print is_expr(Color.green)
+print Color.green == Color.blue
+print simplify(Color.green == Color.blue)
+
+# Let c be a constant of sort Color
+c = Const('c', Color)
+# Then, c must be red, green or blue
+prove(Or(c == Color.green, 
+         c == Color.blue,
+         c == Color.red))
+         
+快捷方式         
+Color, (red, green, blue) = EnumSort('Color', ('red', 'green', 'blue'))
+
+
+set, bag类型模拟：
+
+The following example defines several abbreviations for sort expressions
+(define-sort Set (T) (Array T Bool))
+(define-sort IList () (List Int))
+(define-sort List-Set (T) (Array (List T) Bool))
+(define-sort I () Int)
+
+(declare-const s1 (Set I))
+(declare-const s2 (List-Set Int))
+(declare-const a I)
+(declare-const l IList)
+
+(assert (= (select s1 a) true))
+(assert (= (select s2 l) false))
+(check-sat)
+(get-model)
+
+
+Bags as Arrays
+
+We can use the parametrized map function to encode finite sets and finite bags. Finite bags can be modeled similarly to sets. A bag is here an array that maps elements to their multiplicity. Main bag operations include union, obtained by adding multiplicity, intersection, by taking the minimum multiplicity, and a dual join operation that takes the maximum multiplicity. In the following example, we define the bag-union using map. Notice that we need to specify the full signature of + since it is an overloaded operator.
+
+(define-sort A () (Array Int Int Int))
+(define-fun bag-union ((x A) (y A)) A
+  ((_ map (+ (Int Int) Int)) x y))
+(declare-const s1 A)
+(declare-const s2 A)
+(declare-const s3 A)
+(assert (= s3 (bag-union s1 s2)))
+(assert (= (select s1 0 0) 5))
+(assert (= (select s2 0 0) 3))
+(assert (= (select s2 1 2) 4))
+(check-sat)
+(get-model)
+
+
+---------------
+数组元素比较
+I want to describe the following problem using Z3
+int []array1=new int[100];
+int []array2=new int[100];
+array1[0~99]={i0, i1, ..., i99}; (i0...i99 > 0)
+array2[0~99]={j0, j1, ..., j99}; (j0...j99 < 0)
+int i, j; (0<=i<=99, 0<=j<=99)
+does array1[i]==array2[j]?
+
+For solving this problem, Z3 will use a Brute-force approach, it will essentially try all possible combinations. It will not manage to find the "smart" proof that we (as humans) immediately see. On my machine, it takes approximately 17 secs for solving for arrays of size 100, 2.5 secs for arrays of size 50, and 0.1 secs for arrays of size 10.
+
+However, if we encode the problem using quantifiers, it can instantaneously prove for any array size, we don't even need to specify a fixed array size. In this encoding, we say that for all i in [0, N), a1[i] > 0 and a2[i] < 0. Then, we say we want to find j1 and j2 in [0, N) s.t. a1[j1] = a2[j2]. Z3 will immediately return unsat. Here is the problem encoded using the Z3 Python API.
+In the encoding above, we are using the quantifiers to summarize the information that Z3 could not figure out by itself in your encoding. The fact that for indices in [0, N) one array has only positive values, and the other one only negative values.
+
+a1 = Array('a1', IntSort(), IntSort())
+a2 = Array('a2', IntSort(), IntSort())
+N  = Int('N')
+i  = Int('i')
+j1  = Int('j1')
+j2  = Int('j2')
+s = Solver()
+s.add(ForAll(i, Implies(And(0 <= i, i < N), a1[i] > 0)))
+s.add(ForAll(i, Implies(And(0 <= i, i < N), a2[i] < 0)))
+s.add(0 <= j1, j1 < N)
+s.add(0 <= j2, j2 < N)
+s.add(a1[j1] == a2[j2])
+print s
+print s.check()

@@ -24,7 +24,12 @@ First-order logic is a formal system used in mathematics, philosophy, linguistic
 
 4 “暗时间”一书中的Ｐ178, "康托尔、歌德尔、图灵--永恒的金色对角线"对停机问题，命令式语言（起源图灵机）与函数式语言（起源 church等的lamabda calculus）的起源差异和殊途同归，讲了Functional language的基础lamabda calculus的递归定义等，把好几个分离的东西（康托尔、歌德尔、图灵，丘齐）给串起来了，很有意思。
 
+
+
 其它一些还没看的书或文章
+
+[数理逻辑].(美)Herbert.B.Enderton.清晰版.pdf 讲了数理逻辑相关的基本概念，需要看！
+
 A Logical Introduction to Proof, Daniel W. Cunningham, Springer, 2012
 
 A Short Introduction to Hoare Logic 2008
