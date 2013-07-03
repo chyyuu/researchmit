@@ -1,0 +1,73 @@
+python related info:
+
+__name__ __slots__的解释
+http://docs.python.org/2/reference/datamodel.html
+
+ __name__	
+ User-defined functions：Another way of spelling func_name
+ User-defined methods： is the method name (same as im_func.__name__)
+ Built-in functions： is the function’s name
+ Modules：is the module’s name
+ Classes：is the class name
+ 
+ __slots__
+
+类实例使用字典（__dict__）管理属性. 在对象只有少量实例变量时这就会占用不少空间, 当有大量实例时, 空间消耗会变得更为严重.这个默认行为可以通过在类定义中定义 __slots__ 修改. __slots__ 声明只为该类的所有实例预留刚刚够用的空间
+_slots__ 是在类这一级实现的, 通过为每个实例创建描述符 (实现描述符). 因此, 不能使用类属性为实例的 __slots__ 中定义的属性设置默认值. 否则, 类属性会覆盖描述符的赋值操作.
+
+python新模式的class，即从object继承下来的类有一个变量是__slots__，slots的作用是阻止在实例化类时为实例分配dict，默认情况下每个类都会有一个dict,通过__dict__访问，这个dict维护了这个实例的所有属性，举例如下
+class base(object):
+    v = 1
+    def __init__(self):
+          pass
+
+b = base()
+print b.__dict__
+b.x = 2
+print b.__dict__
+运行：
+{}
+{'x':2}
+
+可见：实例的dict只保持实例的变量，对于类的属性是不保存的，类的属性包括变量和函数。由于每次实例化一个类都要分配一个新的dict，因此存在空间的浪费，因此有了slots，当定义了slots后，slots中定义的变量变成了类的描述符，相当于java，c++中的成员变量声明，类的实例只能拥有这些个变量，而不在有dict，因此也就不能在增加新的变量
+
+__dict__
+每个python对象中都用一个字典来保存其命名空间，也就是__dict__。举栗来讲，C.x实际上是被翻译成C.__dict__[“x”]。那么，runtime地向C中添加一些成员就是小case了。一个例子程序如下：
+
+class C:
+    def __init__(self):
+        self.x = 1
+        self.y = 2
+
+    def regist(self, key, val):
+        self.__dict__[key] = val
+
+c = C()
+print c.__dict__
+c.regist("z", 3)
+c.regist("func", lambda x: "".join(["=>", str(x), "<="]))
+print c.__dict__
+print c.x, c.y, c.z, c.func("__dict__")
+
+运行结果是
+
+{'y': 2, 'x': 1}
+{'y': 2, 'x': 1, 'z': 3, 'func': <function <lambda> at 0x2b55c97de668>}
+1 2 3 =>__dict__<=
+
+
+
+__new__：
+创建对象时调用，但必须得返回一个实例,通常返回本类的实例(通过重写父类的方法)，你返回其他的，也不会报错(例如类E中)。这个方法一般也用于覆盖父类的方法，再对父类中的某些特征进行修改使之符合本类的使用。
+
+__init__：
+创建完对象后调用，对当前对象的实例的一些初始化，无返回值或者返回值为None，返回其他的就会报错。
+如果重写了__new__方法而在__new__里面没有显示或者隐式(类C中的例子)调用__init__则__init__将不起作用
+
+
+__nonzero__() 布尔数，
+有两个永不改变的值 True 或 False
+布尔型是整型的子类，但是不能再被继承而生成它的子类
+没有 __nonzero__() 方法的读写的默认值是 True
+对于值为零的任何数字或空集(空列表，空元组和空字典等)在 Python 中布尔值都是 False
+在数学运算中，Boolean 值的 True 和 False 分别对应与 1 和 0
