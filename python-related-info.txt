@@ -71,3 +71,56 @@ __nonzero__() 布尔数，
 没有 __nonzero__() 方法的读写的默认值是 True
 对于值为零的任何数字或空集(空列表，空元组和空字典等)在 Python 中布尔值都是 False
 在数学运算中，Boolean 值的 True 和 False 分别对应与 1 和 0
+
+
+@Properties
+是什么： 在运算量很小时，把对属性的 get 和 set 方法调用封装为标准的属性访问方式的一个方法。
+优点： 对简单的属性访问来说，去掉直率的 get 和 set 方法调用提高了代码的可读性。允许延后计算。考虑到 Pythonic 的方法来维护类的接口。在性能方面，当直接变量访问是合理的，允许 Properties 就省略了琐碎的属性访问方法，而且将来仍然可以在不破坏接口的情况下重新加入属性访问方法。
+缺点： Properties 在 getter 和 setter 方法声明之后生效，也就是要求使用者注意这些方法在代码很靠后的地方才能被使用（除了用 @property 描述符创建的只读属性之外 —— 见下文详述）。必须继承自 object 。会像运算符重载一样隐藏副作用。对子类来说会很难理解。
+决定： 在那些你通常本来会用简单、轻量的访问/设置方法的代码中使用 Properties 来访问和设置数据。只读的属性应该用 @property 描述符?来创建。
+如果 Property 自身没有被覆盖，那 Properties 的继承并非显而易见。因此使用者必须确保访问方法被间接调用，以便确保子类中被覆盖了的方法会被 Property 调用（使用“模板方法（Template Method）”设计模式）。
+
+例子
+import math
+
+class Square(object):
+  """基类 square 有可写的 'area' 属性和只读的 'perimeter' 属性。
+
+  可以这样使用：
+  >>> sq = Square(3)
+  >>> sq.area
+  9
+  >>> sq.perimeter
+  12
+  >>> sq.area = 16
+  >>> sq.side
+  4
+  >>> sq.perimeter
+  16
+  """
+
+  def __init__(self, side):
+    self.side = side
+
+  def _getArea(self):
+    """计算 'area' 属性的值"""
+    return self.side ** 2
+
+  def __getArea(self):
+    """对 'area' 属性的间接访问器"""
+    return self._getArea()
+
+  def _setArea(self, area):
+    """对 'area' 属性的设置器"""
+    self.side = math.sqrt(area)
+
+  def __setArea(self, area):
+    """对 'area' 属性的间接设置器"""
+    self._setArea(area)
+
+  area = property(__getArea, __setArea,
+                  doc="""Get or set the area of the square""")
+
+  @property
+  def perimeter(self):
+    return self.side 

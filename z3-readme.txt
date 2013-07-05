@@ -1,3 +1,45 @@
+from  http://www.cnblogs.com/RicCC/archive/2007/09/16/893606.html
+=======================================
+set, bag, list, map的语义
+集合最重要的一点是集合的语义。Java JPA中对Set, List, Collection, Map四种集合进行了定义（Java的Collection允许bag语义），NHibernate从Hibernate移植时照搬了这些概念。但是.Net社区中这些概念比较弱，很多人对set, bag, map的说法很陌生，这也对NHibernate集合映射的使用造成一定障碍。
+
+set
+集合中的对象是唯一的，无序的，不能通过索引、key值访问，只能使用enumerator列举集合对象。
+.Net没有原生的set类，所以NHibernate使用Iesi.Collections的set。
+不同的set实现可能存在一些差异，因此导致set表现出来的特性不大一样，但在设计、使用上的主要原则是将set看作唯一、无序的。
+Iesi.Collections中，基于System.Collections.SortedList实现的ListSet在列举集合对象时顺序跟添加到set的顺序一致，但基于System.Collections.HashTable实现的HashSet就不一致了。HashSet根据对象的GetHashCode()返回值判断对象是否相等，而ListSet则使用对象的Equals()方法进行判断，所以如果没有注意重载GetHashCode()和Equals()方法，在保证唯一性上就有问题。HybridSet是Iesi.Collections中的一个混合类型，基于System.Collections.Specialized.HybridDictionary实现，主要是出于性能的考虑，内部实现会根据集合中对象的数量，自动在ListSet和HashSet两种类型间转换。
+另外Iesi.Collections中的SortedSet允许提供一个IComparer接口，这样在列举集合对象时将按照IComparer提供的方法排序。
+
+bag:
+跟set基本一样，唯一不同之处在于bag中允许重复对象。
+.Net没有原生的bag类，PowerCollections中有bag实现。
+
+list:
+有序集合，可以重复，使用从0开始的整数作为索引。
+.Net中的List、ArrayList、LinkedList等，ArrayList用数组实现，LinkedList用双向链表实现。
+
+map:
+无序集合，key值不可以重复，可以使用任意类型的对象作为索引。
+.Net中的map类有Dictionary、SortedDictionary、HashTable、SortedList等，SortedDictionary提供了排序支持。
+Java中的map有HashMap和SortedMap。
+
+set, bag, list, map语义与System.Collections的对应关系
+在System.Collections下面，IList跟list语义一致，IDictionary跟map语义一致。对于具体实现类，根据它们实现的接口来确定跟set, bag, list, map语义的对应关系。
+例如上面提到SortedList现了IDictionary接口，因此是一个map实现，这使得它的名字跟语义不符。
+ICollection接口对语义没有明确声明，完全由具体类的实现决定属于哪种语义。抽象类CollectionBase实现了IList、ICollection接口，因此是list语义。PowerCollections中的Bag<T>是基于ICollection实现bag语义。
+
+集合映射中实体（Entity）跟值对象（Value Object）的区别
+实体拥有独立的生命周期，拥有自己的实体标识（Entity Identifier）；而值对象的生命周期完全依附于它所属的实体，没有自己的标识（Identifier）。
+最基本的值类型是.Net原生的那些value types，业务中简单的值对象常见的如Money、欧美风格的姓名等。复杂的业务中实体跟值对象有时候很难区分，并且同一个概念对象在不同系统环境中也可能不一样，例如在专业的地理信息处理系统中，地址可能是实体，而对于其它系统例如ERP、人力资源管理等，地址可能是值对象。
+一些简单的原则可以用于区分实体跟值对象：
+1. 生命周期。值对象不能脱离它所属的实体而存在，它在实体创建时或之后被创建，跟随所属的实体一起被销毁。这个生命周期是针对业务面而言，如果用内存中对象的生命周期去理解就会有疑惑，因此结合数据库中的记录（即持久化状态的对象）来理解这个生命周期概念更直观。
+2. 共享引用。值对象不能被共享引用。以地址为例，如果user A和user B都有一个地址并且是一样的，设计为值对象时地址表中会有两条记录，一条属于user A一条属于user B，设计为实体时地址表中只有一条记录，user A跟user B都通过地址对象的标识引用。应该采用哪种方案看具体的业务需要。
+粗糙的设计将值对象和实体一视同仁，稍微细致一点的设计就会出现不少值对象。
+NHibernate中，<set>, <bag>, <list>, <map>等与<element>、<composite-element>结合，完成值对象的集合映射；one-to-one, many-to-one, one-to-many, many-to-many的出现则意味着实体间的关联关系。
+值对象的集合映射不需要cascade，因为它的生命周期原则在定义中就已经确定了，cascade只用于实体间的生命周期关联控制。
+集合映射中，值对象跟实体保存在不同的表中，但值对象不需要独立的配置文件，在实体映射文件中通过<set>, <bag>, <list>, <map>已经完全描述清楚了。而实体间的one-to-one, many-to-one, one-to-many, many-to-many关联，每个实体都拥有自己的配置文件。
+===========================================
+
 z3-sampler.pdf 简要介绍了z3基于的术语，技术基础和相关theory, 
 术语 （第4页的 2小节 Preliminaries）
 A propositional formula ! can be a propositional variable p or a negation
@@ -342,3 +384,27 @@ s.add(0 <= j2, j2 < N)
 s.add(a1[j1] == a2[j2])
 print s
 print s.check()
+
+
+
+------------------------
+注意，类似整数常量 1, 2, 也可以是z3的Int, 比如 IntNumRef(42) 就把python的Integer常数 42，转变成z3的Integer 42
+可以在ipython中从看到
+x=Int('a')
+
+x+1
+Out[26]: a + 1
+
+(x+1).children()
+Out[27]: [a, 1]
+
+(x+1).children()[1]
+Out[28]: 1
+
+(x+1).children()[1].__class__
+Out[29]: z3.IntNumRef
+
+可以看出 1 已经是z3的interger了。
+
+
+

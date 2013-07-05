@@ -89,7 +89,7 @@ sys	0m2.236s
 
 
 
-
+注意：这个需要仔细看看!!!
 3. Switch from ADTs to internal compounds for structs  simsym.py   
     Previously, we represented structs as Z3 ADTs.  While this meant that
     every symbolic value was directly represented as a Z3 symbolic
@@ -121,6 +121,54 @@ sys	0m2.236s
     Since this completely changes the way structure variables are
     constructed, it of course breaks test case generation.
     
+    
+这个函数是干啥的???    
++        def mkValue(name, sort):  //是在symbolic.var函数中调用的symbolic.new_lvalue的调用参数  
+                                   //cls._new_lvalue(mkValue((), cls._z3_sort()), model)
++            if isinstance(sort, dict):
++                return {k: mkValue(name + "." + k, v)
++                        for k, v in sort.iteritems()}   我理解是根据sort中的内容创建符号常量
++            return z3.Const(name, sort)
++        return cls._new_lvalue(mkValue(name, cls._z3_sort()))
+
+
+证据了compound
++# Compounds
++#
++
++# A "compound X" is either an X or a dictionary from component names
++# (e.g., struct fields) to compound X's.
++
++def compound_map(func, *compounds):
+
+在此设置断点，则对于
+SPipeMap = symtypes.tmap(SPipeId, SPipe)
+ tmap 创建新的type 为
+   name ='SMap_SPipeId_SStruct_nread_data'
+   base = (SMapBase,),  
+   dict=   {"_indexType" : indexType, "_valueType" : valueType, "__z3_sort__" : sort})
+     其中
+      indexType= <class 'fs.SPipeId'>
+      valueType= <class 'simsym.SStruct_nread_data'>
+      sort={'nread': Array(PipeId, Int), 'data': {'_len': Array(PipeId, Int), '_vals': Array(PipeId, Array(Int, DataByte))}}
+
+
+SFdMap = symtypes.tdict(SFdNum, SFd)
+
+name='SMap_SFdNum_SStruct_ispipe_pipewriter_off_pipeid_inum'
+base=(SMapBase,), 
+dict={"_indexType" : indexType, "_valueType" : valueType,"__z3_sort__" : sort}
+    indexType=<class 'simsym.SFdNum'>
+    valueType=<class 'simsym.SStruct_ispipe_pipewriter_off_pipeid_inum'>
+    sort={'ispipe': Array(Int, Bool), 'pipewriter': Array(Int, Bool), 'off': Array(Int, Int), 'pipeid': Array(Int, PipeId), 'inum': Array(Int, Inum)}
+
+tdict 比 tmap多了一个_valid, 即key可能无效
+    base = tstruct(_map = tmap(keyType, valueType),
+                   _valid = tmap(keyType, SBool))
+
+
+
+                   
 13/6/7
 ===================
 1.  Introduce synonym types  simsym.py
@@ -129,6 +177,8 @@ sys	0m2.236s
     map a Z3 constant back to its Symbolic type.  Synonym types will let
     us declare new types for things that need to behave like basic types.
     We can then associate information with these types.
+    
+    比如 SOffset = simsym.tsynonym("SOffset", simsym.SInt)  在处理isomorphisms时可以不用理睬它
     
 2. Function to map from a Z3 constant to a Symbolic type simsym.py
 
@@ -415,6 +465,83 @@ sys	0m2.236s
     
 ============================================================
 对symbolic实现的分析    
+------------------
+环境
+environment:
+ i_map: the inode array(map)    SIMap = symtypes.tmap(SInum, SInode)
+ pipes: the pipe                SPipeMap = symtypes.tmap(SPipeId, SPipe)
+ root_dir : root directory      SDirMap = symtypes.tdict(SFn, SInum)
+ 2 procs, proc0/proc1           SProc = symtypes.tstruct(fd_map = SFdMap, va_map = SVaMap)  //SFdMap=tdict(simsym.SInt, SFd)  SVaMap=tdict(SVa, SVMA)  
+ 
+  each proc has a fd_map(SFdMap) and va_map(SVaMap) 
+     |
+     ---->fd_map( type is SFdMap) is a tdict of fd,  fd_dict[SFdNum]= SFd , and SFd=tstruct {inum=SInum, off, ispipe, pipeid}
+     |     inode num(type is SInum expr sort in z3, not a Interger!),  off (file R/W offset), ... 
+     |       |
+     |       ----the inode num --> a index of inode map (type is SIMap), inode_map[SInum]=SInode
+     |                              |   
+     |                              ----> inode is a structure (SInode)
+     |                                     |
+     |                                     ---> data (SData， tlist(SDataByte)， abstract file data block), 
+     |                                          nlink (link num), atime/mtime/ctime
+     |
+     --->va_map is a tdict of memory blocks va_dict[SVa]=SVMA type(va)=SVa, type(vma)=SVMA
+           
+           ---> type(va)=SVa, which is a abstract expr sort in z3, not a Interger! 
+           |             class SVa(simsym.SExpr, simsym.SymbolicConst):
+           |             __z3_sort__ = z3.DeclareSort('VA')
+           |
+           ---> type(vma)=SVMA,  is a tstruct:  anon(SBool), anondata(SDataByte) a data block, SData 是否更好？
+                                 writable(SBool, inum(SInum, for mmap a file), off(SInt, off of a file),  
+如果表示指针关系？
+SDirMap{tdict}[SFn]=SInum
+SIMap{tmap}[SInum]=SInode
+proc0.fd_map{tdict}[SFdNum]{tstruct}.inum
+
+这里面包含一些 == 关系
+但这样的赋值会产生什么后果呢？
+vma.inum = myproc.fd_map[fd].inum
+
+至少
+
+x=Int('a')
+
+y=Int('b')
+
+x
+Out[43]: a
+
+y
+Out[44]: b
+
+x=y
+
+x
+Out[46]: b
+
+可以看到 当执行了x=y后，'a'已经消失了。这样是否不符合 vma.inum = myproc.fd_map[fd].inum的理解???
+
+
+??? why lenType=SInt?? for isomophism???
+SOffset = simsym.tsynonym("SOffset", simsym.SInt)
+SData = symtypes.tlist(SDataByte, lenType=SOffset)      
+问了，确实是用在isomophism，用于不用生成太多的无关测试用例。
+比如在fs.py中有
+isomorphism_types = {
+    SNLink: "ignore",  # Unused for test generation
+    SOffset: "ignore", # Too many cases in link*link (XXX maybe fixed?)
+    STime: "ignore",   # Irrelevant for test generation for now
+    SFdNum: "equal",
+}
+注意，这里的equal, 表示the type should be constrained only on equality (just like an uninterpreted sort).
+这里指仅关注这类的相等和不等的属性，其他属性不用关注，这样也是为了避免生成太多的无关测试用力。
+比如 第一次 a_fdnum==b_fdnum, 可生成测试用例  a_fdnum=1, b_fdnum=1, 
+   那么下一个isomophism测试是 a_fdnum<>b_fdnum， 可生成测试用例  a_fdnum=1, b_fdnum=0,
+
+这样就只生成了两个，而不是无穷多个。   
+    
+                            
+-------------------
 
 所有的类型都继承自class Symbolic(object)，其描述如下：
     """Base class of symbolic types.  Symbolic types come in two
@@ -438,6 +565,7 @@ sys	0m2.236s
 (e.g., an immutable symbolic tuple of constants).     
 
 
+
 实现流程 (以counter为例)
 =============================
 
@@ -447,9 +575,12 @@ sys	0m2.236s
 # the user variable name and a simsym.Model object that binds the Z3
 # environment.
 var_constructors = {}
+比如
+{'Counter': <function <lambda> at 0x24c2668>, '__dummy': <bound method MetaZ3Wrapper.var of <class 'simsym.SInt'>>, 'Counter.counter': <bound method MetaZ3Wrapper.var of <class 'simsym.SInt'>>}
 
 # Map from Z3 constant names to (outer Symbolic type, compound path)
 constTypes = {}
+比如 {'Counter.counter': (<class 'simsym.SInt'>, ())}
 
 ====
 符号变量的基类
@@ -545,7 +676,7 @@ class Symbolic(object):
             name = anon_name()
         elif model is None:
             var_constructors[name] = cls.var
-        def mkValue(path, sort):
+        def mkValue(path, sort):   ???
             if isinstance(sort, dict):
                 return {k: mkValue(path + (k,), v)
                         for k, v in sort.iteritems()}
@@ -705,6 +836,18 @@ class MetaZ3Wrapper(type):
 子类：
 ==============
 __pass_type__ field的作用是???
+问了：
+这里是，有可能这个field用的是python的integer, 这样没有关系，在进行isomorphicmatch时，
+碰到这样的类型，返回z3的integer
+在 class MetaZ3Wrapper(type)的函数_wrap中有对 __pass_type__的判断
+
+    def _wrap(cls, z3ref, model):
+
+        if not isinstance(z3ref, cls.__ref_type__): 说明这个 z3ref不是一个真的z3的ref, 可能是python的ref，
+            if hasattr(cls, "__pass_type__") and \
+               isinstance(z3ref, cls.__pass_type__):  //这里确定一下是否这个z3ref确实是cls中预先指定的python的ref，比如 int, bool等
+                return z3ref                          //如果是，则直接返回即可。
+        ...
 
 Symbolic
 ------------------------------------------------------------------------------------------------------
@@ -717,13 +860,14 @@ Symbolic+MetaZ3Wrapper
     SExpr  //__ref_type__ = z3.ExprRef   __wrap__ = ["__eq__", "__ne__"]
      |
    ---------------------------------------------------------------
-     |       |                              |                  +SymbolicConst
-     |     SEnumBase/STupleBase      SConstMapBase             ----------------------------------------
-     |                                z3.ArrayRef              |     |      |         |       |        |  
-     | __ref_type__=z3.DatatypeRef                           SFn   SInum   SDataByte  SVa  SPipeId  SBool
-     |                                                                                               |   
-     |                                                                                               V
-     |                                                                    // __ref_type__ = z3.BoolRef __pass_type__ = bool __z3_sort__ = z3.BoolSort()
+     |       |                              |                    +SymbolicConst
+     |     SEnumBase/STupleBase      SConstMapBase              ----------------------------------------
+     |     在ttuple用了@property     z3.ArrayRef                 |     |      |         |       |        |  
+     | __ref_type__=z3.DatatypeRef  __wrap__ = ["__getitem__"] SFn   SInum   SDataByte  SVa  SPipeId  SBool
+     |                             tconstmap:immutable map type
+     |                             (a z3 "array")                                                       |   
+     |                                                                                                  V
+     |                                                                         // __ref_type__ = z3.BoolRef __pass_type__ = bool __z3_sort__ = z3.BoolSort()
      |
      |
      SArith  //__ref_type__ = z3.ArithRef
@@ -732,6 +876,53 @@ Symbolic+MetaZ3Wrapper
        |
        SInt //__z3_sort__ = z3.IntSort()  __pass_type__ = int
 
+tmap(indexType, valueType):
+    name = "SMap_%s_%s" % (indexType.__name__, valueType.__name__)
+    indexSort = indexType._z3_sort()
+    sort = compound_map(lambda z3sort: z3.ArraySort(indexSort, z3sort),
+                        valueType._z3_sort())
+    base=(SMapBase,)
+    
+tstruct(**fields):
+    name = "SStruct_" + "_".join(fields.keys())
+    sort = {fname: typ._z3_sort() for fname, typ in fields.items()}
+    type_fields = {"__slots__": [], "_fields": fields, "__z3_sort__": sort}
+    base=(SStructBase,)
+    
+tlist(valueType, lenType=SInt):  
+    name = "SList_" + valueType.__name__
+    base=(tstruct(_vals = tmap(lenType, valueType), _len = lenType), SListBase)
+
+tdict(keyType, valueType):
+     name = "SDict_" + keyType.__name__ + "_" + valueType.__name__
+     base = (tstruct(_map = tmap(keyType, valueType), _valid = tmap(keyType, SBool)), SDictBase)
+     
+tset(valueType):
+     name = "SSet_" + valueType.__name__
+     mapType = tmap(valueType, SBool)
+     base=(tstruct(_bmap = mapType), SSetBase)
+     
+tbag(valueType):
+    name = "SBag_" + valueType.__name__     
+    mapType = tmap(valueType, SInt)
+    base = (tstruct(_imap = mapType),SBagBase)
+
+???
+tsynonym(name, baseType):
+    type(name, (SSynonymBase,),
+                {"_baseType" : baseType, "__z3_sort__" : baseType._z3_sort()})
+???
+class SSynonymBase(Symbolic):
+    @classmethod
+    def _wrap_lvalue(cls, getter, setter, model):
+        return cls._baseType._wrap_lvalue(getter, setter, model)
+                
+
+下面的没有用     
+tconstmap(indexType, valueType):
+    sort = z3.ArraySort(indexType._z3_sort(), valueType._z3_sort())
+    name = "SConstMap_%s_%s" % (indexType.__name__, valueType.__name__)
+    return type(name, (SConstMapBase, SymbolicConst), {"__z3_sort__" : sort})
 
 ==========
 simsym.py L1155
@@ -755,8 +946,8 @@ internal_vars = {None: SInt.var('__dummy')}
 初始化Counter类
 ==============
 spec.py: L475
-m = __import__(args.module)  //args.module=counter，即代表import counter.py module
-   ==> class Counter(simsym.tstruct(counter=simsym.SInt)):
+m = __import__(args.module)  //args.module=counter，即代表import counter.py module  这里开始创建model相关的新类了这里是counter.Counter类（它的基类是SStruct_counter，也是在此过程中创建的）。
+   ==> class Counter(simsym.tstruct(counter=simsym.SInt)):  //tstruct 将返回一个SStruct_counter的新类
       ==> tstruct(**fields):  //fields={'counter': <class 'simsym.SInt'>}
                 name = "SStruct_" + "_".join(fields.keys())     //name='SStruct_counter'
                 sort = {fname: typ._z3_sort() for fname, typ in fields.items()}  
@@ -864,7 +1055,14 @@ for callset in itertools.combinations_with_replacement(calls, args.ncomb):
                        // calls = (<unbound method Counter.sys_inc>, <unbound method Counter.sys_inc>)
                        这个函数的实现与以前大致一样
                        for callseq in itertools.permutations(range(0, len(calls))):
-                            s = base.var(base.__name__)  //初始化状态 base是Counter
+                            s = base.var(base.__name__)  //var是类方法，初始化状态 base是Counter ，其实是完成了一个新类SStruct_counter的实例化，包括对其中的field, 比如这里的{SInt}Counter.counter的实例化 !!!
+                            这里的base.var其实就是给model(fs, coutner, upipe等)进行符号常量assign
+                            注意，有三个class有var成员方法：
+                               Symbolic.var() : Return a symbolic variable of this type.
+                               SymboliConst.var() : 一个简化版的Symbolic.var 主要是SBool啥的符号变量 
+                               SStructBase.var() ：Return a struct instance with specified field values.
+                               
+                               SStructBasevar中还会递归调用其field的type的var
                                 ==> 调用的是 class SStructBase(Symbolic)的类方法@classmethod def var(cls, __name=None, __model=None, **fields):
                                     //var 将Return a struct instance with specified field values.
                                     //在初始化时，已经创建了一个新类SStruct_counter，而Counter-->SStruct_counter
@@ -900,17 +1098,108 @@ for callset in itertools.combinations_with_replacement(calls, args.ncomb):
                                                     raise ValueError(
                                                         "Name required for partially symbolic struct")
                                                 fvals[fname] = unwrap(typ.var(__name + "." + fname, __model))
+                                             //此时 fvals={'counter': Counter.counter} 
                                         if fields:
                                             raise AttributeError("Unknown struct field %r" % fields.keys()[0])
                                         return cls._new_lvalue(fvals, __model)
-        
-        
+                                            ==>symbolic._new_lvalue
+                                            //实际调用的是symbolic._new_lvalue(cls, init, model):
+                                                val = [init]  //init=fvals={'counter': Counter.counter} 
+                                                def setter(nval):
+                                                    val[0] = nval
+                                                obj = cls._wrap_lvalue(lambda: val[0], setter, model)
+                                                    ==>实际调用的是SStructBase._wrap_lvalue(cls, getter, setter, model)
+                                                        obj = cls.__new__(cls)  //cls=<class 'counter.Counter'>
+                                                                                //counter.Counter是SStructBase的子类
+                                                        # Don't go through the overridden __setattr__.
+                                                        object.__setattr__(obj, "_getter", getter)
+                                                        object.__setattr__(obj, "_setter", setter)
+                                                        object.__setattr__(obj, "_model", model)
+                                                        //这里 getter, setter的定义都在symbolic._new_lvaule中声明了。
+                                                        get 和 set都是取和写val[0]
+                                                        即元素为{名字：类型}的字典，列表val=[{'counter': Counter.counter}]
+                                                        return obj
+                                                        生成了一个新对象（其类为Counter），并设置好相关内容后，返回
+                                                
+                                                下面的代码是symbolic._new_lvalue的倒数两句部分        
+                                                if model is None:  //一般为空
+                                                    assume(cls._assumptions(obj))
+                                                    assume函数把 cls._assumptions(obj)返回的 {SBool} And(True, Counter.counter >= 0)
+                                                                存入到全局列表assume_list中
+                                                    调用Counter类的_assumptions(obj)函数
+                                                      ==>    def _assumptions(cls, obj):
+                                                                    return simsym.symand([super(Counter, cls)._assumptions(obj),
+                                                                                         obj.counter >= 0])
+                                                          super(Counter, cls)._assumptions(obj)实际调用的是symbolic._assumptions(obj)
+                                                                  ==> symbolic._assumptions(cls, obj):  //obj=<counter.Counter object >
+                                                                            return obj.init_assumptions()
+                                                                          其实调用了symbolic.init_assumptions()
+                                                                              ==>symbolic.init_assumptions(self):
+                                                                                    return wrap(z3.BoolVal(True)) 
+                                                                                 //简单返回一个包含z3.True符号值的SBool变量
+                                                       cls._assumptions(obj)= z3的And(True, Counter.counter >=0)  
+                                                       注意：访问obj.counter会触发SStructBase.__getattr__(self,'counter')
+                                                         其实现为：
+                                                                return self._fields[name]._wrap_lvalue(
+                                                                lambda: self._getter()[name],
+                                                                lambda val: self.__setattr__(name, val),
+                                                                self._model)
+                                                                //self=<counter.Counter object at 0x24c55a8>
+                                                                //name='coutner'
+                                                                //self._fields[name]=<class 'simsym.SInt'>
+                                                                //simsym.SInt._wrap_lvalue(...)会创建一个SInt变量（包含了对应的z3.Int符号常量）
+                                                                    其实调用了SymbolicConst._wrap_lvalue
+                                                下面的代码是symbolic._new_lvalue的最后部分                                  
+                                                return obj       
                                             
                                     
                             r = {}
                             seqname = ''.join(map(lambda i: chr(i + ord('a')), callseq))
                             for idx in callseq:
+                                //开始执行a.fun, b.fun, or b.fun, a.fun 设a,b为两个进程
                                 r[idx] = calls[idx](s, chr(idx + ord('a')), seqname)
+                                 ==> 第一次是a.sys_inc()
+                                    首先执行@model.methodwrap()，由于没有参数，所以执行了一堆没太大用的东西，否则应该创建符号常量
+                                    然后具体执行 self.counter = self.counter + 1
+                                    这里 self=<counter.Counter object at 0x24c55a8>
+                                         self._fields={'counter': <class 'simsym.SInt'>}
+                                         self.counter={SInt}Counter.counter
+                                         self.counter._v= {instance}ArithRef: Counter.counter
+                                         self.counter._v.ast=<Ast object at 0x2329ef0>
+                                     
+                                     在做加法过程中，在此过程中，体现了mutable变量的处理过程
+                                        其实调用了z3.__add__(self, other):
+                                          最终返回了一个新的 ArithRef: Counter.counter + 1    
+                                        还调用了z3.AstRef(Z3PPObject): __del__(self): 这里的self是IntNumRef: 1 其实是减少引用计数
+                                        再调用 wrap(ArithRef: Counter.counter + 1),对ArithRef: Counter.counter + 1 进行warp，形成
+                                            一个新的SInt, wrap会调用SInt._wrap，其实是MetaZ3Wrapper._wrap, 这样生成了一个新的SInt obj,
+                                            这个obj包含了新的(ArithRef: Counter.counter + 1)
+                                        再调用了SStructBase.__setattr__(self, name, val):
+                                          //self=<counter.Counter object at 0x24c55a8>
+                                            name='counter'
+                                            val={SInt}Counter.counter + 1  
+                                            
+                                                SStructBase.__setattr__的实现如下
+                                                if name not in self._fields:
+                                                    raise AttributeError(name)
+                                                cval = self._getter()
+                                                //这里的self._getter其实执行的是 Symbolic._new_lvalue中定义的一个lambda函数 (simsym.py L70)
+                                                  返回val[0]，所以 cval={dict}{'counter': Counter.counter}
+                                                  
+                                                cval[name] = unwrap(val)
+                                                // 这里的unwrap(val) = ArithRef: Counter.counter + 1
+                                                所以 cval['counter']= ArithRef: Counter.counter + 1
+                                                
+                                                self._setter(cval)  
+                                                //这里的_setter是在SStruct._new_lvalue中设置的symbolic._new_lvalue定义的setter函数
+                                                  其实就是 val[0] = nval  //(simsym.py L69)
+                                                  这样
+                                                     self=<counter.Counter object at 0x24c55a8>  //没变
+                                                     self._fields={'counter': <class 'simsym.SInt'>} //没变
+                                                     self.counter={SInt}Counter.counter + 1            //变了
+                                                     self.counter._v= {instance}ArithRef: Counter.counter + 1 //变了
+                                                     self.counter._v.ast=<Ast object at 0x24cbdd0> //变了
+                                            
                             all_s.append(s)
                             all_r.append(r)
                        ....  
