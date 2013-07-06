@@ -1051,7 +1051,19 @@ pseudo_sort_decls = [
     (simsym.unwrap(simsym.SInt.any('counter')).decl(),'counter'),
 ]
 与 class Counter的__init__函数执行 add_pseudo_sort_decl(simsym.unwrap(self.counter).decl(), 'counter')的效果是一样的。
-一个decl() 是啥意思? 在z3.py中,decal是一个z3 application的函数申明，如果是符号变量，这函数申明是符号变量本身，可看下面的例子
+一个decl() 是啥意思? 在z3.py中,z3obj.decl()是一个z3 application的函数申明，如果是符号变量，这函数申明是符号变量本身，可看下面的例子
+
+x=Int('a')
+
+x.decl()?
+Type:       instancemethod
+Base Class: <type 'instancemethod'>
+String Form:<bound method ArithRef.decl of a>
+Namespace:  Interactive
+File:       /home2/chy/opt/z3/lib/python2.7/dist-packages/z3.py
+Definition: x.decl(self)
+Docstring:
+
 -----------------------------------------
     def decl(self):
         """Return the Z3 function declaration associated with a Z3 application.
