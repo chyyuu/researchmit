@@ -28,6 +28,7 @@ First-order logic is a formal system used in mathematics, philosophy, linguistic
 
 其它一些还没看的书或文章
 
+
 [数理逻辑].(美)Herbert.B.Enderton.清晰版.pdf 讲了数理逻辑相关的基本概念，需要看！
 
 A Logical Introduction to Proof, Daniel W. Cunningham, Springer, 2012
@@ -268,3 +269,339 @@ Index of Notation 427
 Index 431
 Bibliography 437
 END
+
+
+5 计算机编程的原理
+book
+concepts, Techniques, and Models of Computer Programming, Peter Van Roy, Seif Haridi, The MIT Press, 2004
+
+Stateless and stateful programming are often called declarative and imperative
+programming,
+
+A state is a sequence of values in time that contains the interme-
+diate results of a desired computation.
+
+The sequence need only exist in the mind of the programmer. It does not need any
+support at all from the computation model. This kind of state is called implicit
+state or declarative state. 
+
+Explicit state cannot be expressed in the declarative model. To have it, we extend
+the model with a kind of container that we call a cell. A cell has a name, an indefinite
+lifetime, and a content that can be changed. 
+An explicit state in a procedure is a state whose lifetime extends
+over more than one procedure call without being present in the
+procedure’s arguments.
+
+
+对variable的理解：
+============
+Variables are just shortcuts for values. also like mathematical variables.
+They cannot be assigned more than once. But you can declare another
+variable with the same name as a previous one. The previous variable then becomes
+inaccessible. Previous calculations that used it are not changed
+
+because there are two concepts hiding behind the word “variable”:
+1. The identifier. This is what you type in. Variables start with a capital letter
+and can be followed by any number of letters or digits. For example, the character
+sequence Var1 can be a variable identifier.
+2. The store variable. This is what the system uses to calculate with. It is part of
+the system’s memory, which we call its store
+
+The declare statement creates a new store variable and makes the variable
+identifier refer to it. Previous calculations using the same identifier are not changed
+because the identifier refers to another store variable.
+
+Declarative variables
+=====================
+Variables in the single-assignment store are called declarative variables
+Once bound, a declarative variable stays bound throughout the computation
+and is indistinguishable from its value. 
+Once bound, a declarative variable stays bound throughout the computation
+and is indistinguishable from its value. What this means is that it can be used in
+calculations as if it were the value. Doing the operation x + y is the same as doing
+11 + 22, if the store is {x = 11, y = 22}.
+
+Value store
+===========
+A store where all variables are bound to values is called a value store.
+Another way to say this is that a value store is a persistent mapping from variables to values.
+
+A value is a mathematical constant.
+
+Value creation
+=============
+The basic operation on a store is binding a variable to a newly created value. We
+will write this as xi =value. Here xi refers directly to a variable in the store (it is
+not the variable’s textual name in a program!) and value refers to a value, e.g.,
+314 or [1 2 3]. For example, figure 2.7 shows the store of figure 2.6 after the two
+bindings:
+x1 = 314
+x2 = [1 2 3]
+
+The single-assignment operation xi =value constructs value in the store and then
+binds the variable xi to this value. If the variable is already bound, the operation
+will test whether the two values are compatible. If they are not compatible, an error
+is signaled (using the exception-handling mechanism; see section 2.7).
+
+Variable identifiers
+===================
+It would be nice if we could refer to a
+store entity from outside the store. This is the role of variable identifiers. A variable
+identifier is a textual name that refers to a store entity from outside the store. The
+mapping from variable identifiers to store entities is called an environment.
+
+The variable names in program source code are in fact variable identifiers.
+
+
+Partial values
+==============
+A partial value is a data structure that may contain unbound variables.
+A declarative variable can be bound to several partial values,
+as long as they are compatible with each other. 
+
+ We say a set of partial values is
+compatible if the unbound variables in them can be bound in such a way as to make
+them all equal.  For example, person(age:25) and person(age:x) are compatible
+(because x can be bound to 25), but person(age:25) and person(age:26) are
+not.
+
+
+Variable-variable binding
+=========================
+Variables can be bound to variables. For example, consider two unbound variables
+x1 and x2 referred to by the identifiers X and Y. After doing the bind X=Y, we get the
+situation in figure 2.14. The two variables x1 and x2 are equal to each other. 
+The figure shows this by letting each variable refer to the other. We say that {x1 , x2}
+form an equivalence set （From a formal viewpoint, the two variables form an equivalence class with respect to
+equality.）
+邏輯上等價（Logical Equivalence）
+
+Values and types
+===============
+A type or data type is a set of values together with a set of operations on those
+values. A value is “of a type” if it is in the type’s set.
+
+The basic types of the declarative model are numbers (integers and floats), records
+(including atoms, booleans, tuples, lists, and strings), and procedures. 
+In addition to basic types, programs can define their own types. These are called
+abstract data types, or ADTs. 
+
+Dynamic/static typing
+=======================
+In static typing, all variable types are known at compile time.
+In dynamic typing, the variable type is known only when the variable is bound.
+
+Basic types
+===========
+1. Numbers. Numbers are either integers or floating point numbers. 
+2. Atoms. An atom is a kind of symbolic constant that can be used as a single
+element in calculations. 
+3. Booleans. A boolean is either the symbol true or the symbol false
+4. Records. A record is a compound data structure. It consists of a label followed by
+a set of pairs of features and variable identifiers. Features can be atoms, integers, or
+booleans.
+5. Tuples. A tuple is a record whose features are consecutive integers starting from 1. 
+6. Lists. A list is either the atom nil or the tuple  ́| ́(H T) (label is vertical bar),
+where T is either unbound or bound to a list. This tuple is called a list pair or a
+cons. 
+7. Strings. A string is a list of character codes. 
+8. Procedures. A procedure is a value of the procedure type. 
+注意，如果是function, 则需要有确定的参数和返回值。但procedure不需要
+
+Basic operations
+================
+X=A*B is syntactic sugar for {Number.‘×’ ́A B X}
+where Number. ́* ́ is a procedure associated with the type Number.
+
+1. Arithmetic. Floating point numbers have the four basic operations, +, -, *, and /,
+with the usual meanings. Integers have the basic operations +, -, *, div, and mod,
+
+2. Record operations. Three basic operations on records are Arity, Label, and “. ”
+(dot, which means field selection). 
+For example, given
+X=person(name:"George" age:25)
+then {Arity X}=[age name], {Label X}=person, and X.age=25. 
+
+The call to Arity returns a list that contains first the integer features in ascending order and
+then the atom features in ascending lexicographic order
+
+3. Comparisons. The boolean comparison functions include == and \=, which can
+compare any two values for equality, as well as the numeric comparisons =<, <,
+>=, and >, which can compare two integers, two floats, or two atoms. Atoms are
+compared according to the lexicographic order of their print representations. 
+
+4. Procedure operations. There are three basic operations on procedures: defining
+them (with the proc statement), calling them (with the curly brace notation), and
+testing whether a value is a procedure with the IsProcedure function. The call
+{IsProcedure P} returns true if P is a procedure and false otherwise.
+
+
+A simple execution
+==================
+During normal execution, statements are executed one by one in textual order. Let
+us look at a simple execution:
+  local A B C D in
+    A=11
+    B=2
+    C=A+B
+    D=C*C
+  end
+This seems simple enough; it will bind D to 169. Let us see exactly what it does.
+The local statement creates four new variables in the store, and makes the four
+identifiers A, B, C, D refer to them. (For convenience, this extends slightly the
+local statement of table 2.1.) This is followed by two bindings, A=11 and B=2.
+The addition C=A+B adds the values of A and B and binds C to the result 13. The
+multiplication D multiples the value of C by itself and binds D to the result 169.
+This is quite simple.
+
+Variable identifiers and static scoping
+=======================================
+We saw that the local statement does two things: it creates a new variable and
+it sets up an identifier to refer to the variable. The identifier only refers to the
+variable inside the local statement, i.e., between the local and the end. The
+program region in which an identifier refers to a particular variable is called the
+scope of the identifier. Outside of the scope, the identifier does not mean the same
+thing. 
+
+
+Procedures
+===========
+Procedures are one of the most important basic building blocks of any language.
+We give a simple example that shows how to define and call a procedure. Here is a
+procedure that binds Z to the maximum of X and Y:
+    proc {Max X Y ?Z}
+        if X>=Y then Z=X else Z=Y end
+    end
+To make the definition easier to read, we mark the output argument with a
+question mark “?”. This has absolutely no effect on execution; it is just a comment.
+Calling {Max 3 5 C} binds C to 5. How does the procedure work, exactly? When
+Max is called, the identifiers X, Y, and Z are bound to 3, 5, and the unbound
+variable referenced by C. When Max binds Z, then it binds this variable. Since C
+also references this variable, this also binds C. This way of passing parameters is
+called call by reference. Procedures output results by being passed references to
+unbound variables, which are bound inside the procedure. This book mostly uses
+call by reference, both for dataflow variables and for mutable variables. Section 6.4.4
+explains some other parameter-passing mechanisms.
+
+
+Static/dynamic scope
+Static scope. The variable corresponding to an identifier occurrence is the one
+defined in the textually innermost declaration surrounding the occurrence in the
+source program.
+Dynamic scope. The variable corresponding to an identifier occurrence is the one
+in the most-recent declaration seen during the execution leading up to the current
+statement.
+
+
+
+function:
+=========
+We do this by defining a function:
+declare
+    fun {Fact N}
+        if N==0 then 1 else N*{Fact N-1} end
+    end
+The declare statement creates the new variable Fact. The fun statement defines
+a function. The variable Fact is bound to the function. 
+
+list:
+==========
+
+A list is actually a chain of links, where each
+link contains two things: one list element and a reference to the rest of the chain.
+Lists are always created one element at a time, starting with nil and adding links
+one by one. A new link is written H|T, where H is the new element and T is the
+old part of the chain. Let us build a list. We start with Z=nil . We add a first link
+Y=7|Z and then a second link X=6|Y. Now X references a list with two links, a list
+that can also be written as [6 7]
+The link H|T is often called a cons, a term that comes from Lisp.2 We also call
+it a list pair. Creating a new link is called consing. If T is a list, then consing H and
+T together makes a new list H|T:
+
+Correctness:
+===========
+A program is correct if it does what we would like it to do. How can we tell whether
+a program is correct?
+
+To prove correctness in general, we have
+to reason about the program. This means three things:
+
+1. We need a mathematical model of the operations of the programming language,
+defining what they should do. This model is called the language’s semantics.
+
+2. We need to define what we would like the program to do. Usually, this is a
+mathematical definition of the inputs that the program needs and the output that
+it calculates. This is called the program’s specification.
+
+3. We use mathematical techniques to reason about the program, using the seman-
+tics. We would like to demonstrate that the program satisfies the specification.
+
+Eager/Lazy evaluation
+
+The functions we have written so far will do their calculation as soon as they are
+called. This is called eager evaluation. 
+
+In lazy evaluation, a calculation is done only when the
+result is needed. 
+This is one of the advantages of lazy evaluation: we
+can calculate with potentially infinite data structures without any loop boundary
+conditions.
+
+Explicit state
+==============
+
+How can we let a function learn from its past? That is, we would like the function
+to have some kind of internal memory, which helps it do its job. Memory is needed
+for functions that can change their behavior and learn from their past. This kind of
+memory is called explicit state. 
+
+A memory cell
+
+There are lots of ways to define explicit state. The simplest way is to define a
+single memory cell. This is a kind of box in which you can put any content. Many
+programming languages call this a “variable.”
+
+There are three functions on cells: NewCell creates a new
+cell, := (assignment) puts a new value in a cell, and @ (access) gets the current
+value stored in the cell. Access and assignment are also called read and write. For
+example:
+    declare
+    C={NewCell 0}
+    C:=@C+1
+    {Browse @C}
+This creates a cell C with initial content 0, adds one to the content, and displays it.
+
+这个也叫 cell store, 相对前面讲的一次性赋值（or bind）的变量，其对应的称为 value store.
+value store 用于 lisp类的语言
+cell store 用于C类的语言
+
+
+
+
+object:
+=========
+A function with internal memory is usually called an object. 
+
+
+class:
+=========
+What if we need more than one counter?
+It would be nice to have a “factory” that can make as many counters as we need.
+Such a factory is called a class.
+
+Nondeterminism and time
+======================
+This is because the order in which threads access the state can
+change from one execution to the next. This variability is called nondeterminism.
+
+The difficulties occur if the nondeterminism shows up in the program, i.e., if it is
+observable. An observable nondeterminism is sometimes called a race condition.
+
+Interleaving
+============
+That is, threads take turns each executing a little
+
+Atomicity
+===========
+An operation is atomic if no intermediate states can be observed. It seems to jump directly from the initial state
+to the result state. 
