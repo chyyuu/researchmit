@@ -67,8 +67,82 @@ user	24m11.968s
 sys	0m2.236s
 
 大约24分钟
+===================
+重要的变化
+===================
+6b9e9eb270de8a87fe9bf39c5a2032390e190a47
+Author: Austin Clements <amdragon@mit.edu>  2013-06-05 12:40:08
+Committer: Austin Clements <amdragon@mit.edu>  2013-06-11 14:40:14
+Parent: c3aa48c7209fbc74b103dfed50c4bad7b10a46e3 (Pass concrete values through MetaZ3Wrapper._wrap)
+Child:  d71000c15d655b07d41072edbbfb44118ecd49fe (Introduce synonym types)
+Branches: master, remotes/bit/master, remotes/origin/master
+Follows: 
+Precedes: 
+
+    Switch from ADTs to internal compounds for structs
     
+    Previously, we represented structs as Z3 ADTs.  While this meant that
+    every symbolic value was directly represented as a Z3 symbolic
+    expression, it had several drawbacks: 1) during concrete test case
+    enumeration, Z3 could not return a partial ADT value, so we would
+    enumerate concrete values of all struct fields even if some fields
+    were untouched by the test case and 2) Z3 seems to handle ADTs more
+    poorly than you might expect, since expressions that are trivially
+    equivalent to solvable non-ADT expressions seem to be unsolvable by Z3
+    at present.
     
+    This change eliminates Z3 ADTs in favor of our own representation of
+    compound values.  Now, everywhere that used to allow a Z3 sort or Z3
+    value accepts a "compound Z3 sort" or "compound Z3 value".  In the
+    base case, a compound Z3 sort/value is simply a Z3 sort/value, but it
+    can also be a dictionary mapping component names to compound Z3
+    sorts/values.  Structs are thus represented directly as a level in
+    this dictionary tree mapping field names to field types/values.
+    
+    Maps, the only other basic mutable compound type we support, become
+    more interesting, since we can no longer simply use a Z3 map type if
+    the value type of the map is a compound Z3 type.  However, map indexes
+    and struct field references commute, so a map type is structurally
+    identical to its value type, but with the leaves of the value type
+    transformed into Z3 map types.  Likewise, when you index into a map,
+    we simply broadcast that index operation across the leaves of the
+    compound map value.
+    
+    Since this completely changes the way structure variables are
+    constructed, it of course breaks test case generation.    
+
+
+比如执行到一定阶段，这个dict为：
+{'root_dir': {'_valid': Fs.root_dir._valid, '_map': Fs.root_dir._map}, 'pipes': {'nread': Fs.pipes.nread, 'data': {'_len': Fs.pipes.data._len, '_vals': Fs.pipes.data._vals}}, 'i_map': {'nlink': Fs.i_map.nlink, 'atime': Fs.i_map.atime, 'data': {'_len': Fs.i_map.data._len, '_vals': Fs.i_map.data._vals}, 'ctime': Fs.i_map.ctime, 'mtime': Fs.i_map.mtime}, 'proc1': {'va_map': {'_valid': Fs.proc1.va_map._valid, '_map': {'writable': Fs.proc1.va_map._map.writable, 'anon': Fs.proc1.va_map._map.anon, 'off': Fs.proc1.va_map._map.off, 'anondata': Fs.proc1.va_map._map.anondata, 'inum': Fs.proc1.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc1.fd_map._valid, '_map': {'ispipe': Fs.proc1.fd_map._map.ispipe, 'pipewriter': Fs.proc1.fd_map._map.pipewriter, 'off': Fs.proc1.fd_map._map.off, 'pipeid': Fs.proc1.fd_map._map.pipeid, 'inum': Fs.proc1.fd_map._map.inum}}}, 'proc0': {'va_map': {'_valid': Store(Fs.proc0.va_map._valid, a.mmap.va, True), '_map': {'writable': Store(Store(Fs.proc0.va_map._map.writable,
+            a.mmap.va,
+            Fs.proc0.va_map._map.writable[a.mmap.va]),
+      a.mmap.va,
+      a.mmap.writable), 'anon': Store(Store(Fs.proc0.va_map._map.anon,
+            a.mmap.va,
+            a.mmap.anon),
+      a.mmap.va,
+      Store(Fs.proc0.va_map._map.anon,
+            a.mmap.va,
+            a.mmap.anon)[a.mmap.va]), 'off': Store(Store(Fs.proc0.va_map._map.off,
+            a.mmap.va,
+            Fs.proc0.va_map._map.off[a.mmap.va]),
+      a.mmap.va,
+      Store(Fs.proc0.va_map._map.off,
+            a.mmap.va,
+            Fs.proc0.va_map._map.off[a.mmap.va])[a.mmap.va]), 'anondata': Store(Store(Fs.proc0.va_map._map.anondata,
+            a.mmap.va,
+            Fs.proc0.va_map._map.anondata[a.mmap.va]),
+      a.mmap.va,
+      Store(Fs.proc0.va_map._map.anondata,
+            a.mmap.va,
+            Fs.proc0.va_map._map.anondata[a.mmap.va])[a.mmap.va]), 'inum': Store(Store(Fs.proc0.va_map._map.inum,
+            a.mmap.va,
+            Fs.proc0.va_map._map.inum[a.mmap.va]),
+      a.mmap.va,
+      Store(Fs.proc0.va_map._map.inum,
+            a.mmap.va,
+            Fs.proc0.va_map._map.inum[a.mmap.va])[a.mmap.va])}}, 'fd_map': {'_valid': Fs.proc0.fd_map._valid, '_map': {'ispipe': Fs.proc0.fd_map._map.ispipe, 'pipewriter': Fs.proc0.fd_map._map.pipewriter, 'off': Fs.proc0.fd_map._map.off, 'pipeid': Fs.proc0.fd_map._map.pipeid, 'inum': Fs.proc0.fd_map._map.inum}}}}
+                
 ============================================================
 对symbolic实现的分析    
 ------------------
@@ -146,9 +220,32 @@ isomorphism_types = {
 
 这样就只生成了两个，而不是无穷多个。   
     
+创建对象的地方：
                             
 -------------------
-
+ _wrap_lvalue(cls, getter, setter, model): 
+ Symbolic：为空
+ SymbolicConst: return cls._wrap(getter(), model) 直接返回值，而不是创建一个对象
+ SmapBase: 有 obj = cls.__new__(cls)语句
+ SstructBase: 有 obj = cls.__new__(cls)语句 
+ 
+ 而调用_wrap_lvalue的地方有三处：
+ Symbolic的成员函数_new_lvalue，调用了obj = cls._wrap_lvalue(lambda: val[0], setter, model)
+ 这个其实是class.var调用的。
+ 
+ SMapBase的成员函数__getitem__(self, idx): return self._valueType._wrap_lvalue(
+                                            lambda: compound_map(
+                                                lambda z3val: z3.Select(z3val, z3idx), self._getter()),
+                                            lambda val: self.__setitem__(idx, val),
+                                            self._model)
+SstructBase的成员函数 __getattr__(self, name):
+                                if name not in self._fields:
+                                    raise AttributeError(name)
+                                return self._fields[name]._wrap_lvalue(
+                                    lambda: self._getter()[name],
+                                    lambda val: self.__setattr__(name, val),
+                                    self._model)
+ 
 所有的类型都继承自class Symbolic(object)，其描述如下：
     """Base class of symbolic types.  Symbolic types come in two
     groups: constant and mutable.  Symbolic constants are deeply
@@ -488,6 +585,128 @@ tmap(indexType, valueType):
     sort = compound_map(lambda z3sort: z3.ArraySort(indexSort, z3sort),
                         valueType._z3_sort())
     base=(SMapBase,)
+注意 tmap用到了 z3.ArraySort
+ sort = compound_map(lambda z3sort: z3.ArraySort(indexSort, z3sort),
+                        valueType._z3_sort())
+                        
+SMapBase用到了 应该用到z3.Array
+    lambda z3val: z3.Select(z3val, z3idx), self._getter()),
+    和lambda z3map, z3val: z3.Store(z3map, z3idx, z3val),
+
+在fs.py中，的mmap的实现中，有如下操作：
+        vma = myproc.va_map.create(va)
+表明了:
+    Fs.proc0.va_map._map.writable[a.mmap.va]
+    Fs.proc0.va_map._map.anon[a.mmap.va]
+    Fs.proc0.va_map._map.anondata[a.mmap.va]  
+    Fs.proc0.va_map._map.off[a.mmap.va]
+    有这么一个符号变量了，没有绑定。
+          
+        vma.anon = anon
+表明了：
+       Fs.proc0.va_map._map.anon[a.mmap.va]=a.mmap.anon
+       即 Z3.Store(Fs.proc0.va_map._map.anon, a.mmap.va,  a.mmap.anon)
+       
+       vma.writable = writable
+      类似上面的操作，这样形成了一个新的符号array,如下所示：
+      ArrayRef: Store(Store(Fs.proc0.va_map._map.writable,
+            a.mmap.va,
+            Fs.proc0.va_map._map.writable[a.mmap.va]),
+      a.mmap.va,
+      a.mmap.writable)
+
+注意  vma其实是 SMapBase的一个element， value为 Fs.proc0.va_map._map[a.mmap.va]，
+    Fs.proc0.va_map是SDictBase
+    z3 value为 Fs.proc0.va_map._map是SMapBase
+所以在用创建vma （用的是SDictBase中的create成员变量）时，确定了 vma其实是 SMapBase的一个element,
+而SMapBase在调用 def __getitem__(self, idx)时，是这样设定的：
+    def __getitem__(self, idx):
+        """Return the value at index 'idx'."""
+        z3idx = unwrap(idx)
+        return self._valueType._wrap_lvalue(
+            lambda: compound_map(
+                lambda z3val: z3.Select(z3val, z3idx), self._getter()),
+            lambda val: self.__setitem__(idx, val),
+            self._model)
+这说明了把 item的 _getter设置成为了
+lambda: compound_map(
+                lambda z3val: z3.Select(z3val, z3idx), self._getter()),
+
+把item的_setter设置成为了
+lambda val: self.__setitem__(idx, val)  即SMapBase的 
+    def __setitem__(self, idx, val):
+        """Change the value at index 'idx'."""
+        z3idx = unwrap(idx)
+        self._setter(compound_map(
+            lambda z3map, z3val: z3.Store(z3map, z3idx, z3val),
+            self._getter(), unwrap(val)))
+            
+这样，如果map(id, a_struct)
+则每个a_struct.field其实是个数组，都要更新一下。即做一次Store.            
+            
+这样，如果某个变量属于struct or map, 则会一层一层第访问到最高层的_getter, or __getitem__ ???
+具体代码可见 Sstruct中的
+    def __getattr__(self, name):  //如果这个属性不存在，则会调用此函数，创建一个field对应类型的obj
+        if name not in self._fields:
+            raise AttributeError(name)
+        return self._fields[name]._wrap_lvalue(
+            lambda: self._getter()[name],
+            lambda val: self.__setattr__(name, val),
+            self._model)
+注意： self._fields[name]可获得此field的class，然后就是调用_wrap_lvalue创建此对象了，且设置此对象的读操作和写操作。           
+            
+
+    def __setattr__(self, name, val):
+        if name not in self._fields:
+            raise AttributeError(name)
+        cval = self._getter()
+        cval[name] = unwrap(val)
+        self._setter(cval)
+        
+注意cval的处理。这样的目的是为了确定别找错了？
+
+例如：
+这里的self是最高层的Fs类型的对象了
+self._getter()['proc0']['va_map']['_map']['writable']=ArrayRef: Store(Store(Fs.proc0.va_map._map.writable,
+            a.mmap.va,
+            Fs.proc0.va_map._map.writable[a.mmap.va]),
+      a.mmap.va,
+      a.mmap.writable)
+      
+而其它层次都是记录了一个dict，比如
+self._getter()['proc0']['va_map']['_map']={'writable': Store(Store(Fs.proc0.va_map._map.writable,
+            a.mmap.va,
+            Fs.proc0.va_map._map.writable[a.mmap.va]),
+      a.mmap.va,
+      a.mmap.writable), 'anon': Store(Store(Fs.proc0.va_map._map.anon,
+            a.mmap.va,
+            a.mmap.anon),
+      a.mmap.va,
+      Store(Fs.proc0.va_map._map.anon,
+            a.mmap.va,
+            a.mmap.anon)[a.mmap.va]), 'off': Store(Store(Fs.proc0.va_map._map.off,
+            a.mmap.va,
+            Fs.proc0.va_map._map.off[a.mmap.va]),
+      a.mmap.va,
+      Store(Fs.proc0.va_map._map.off,
+            a.mmap.va,
+            Fs.proc0.va_map._map.off[a.mmap.va])[a.mmap.va]), 'anondata': Store(Store(Fs.proc0.va_map._map.anondata,
+            a.mmap.va,
+            Fs.proc0.va_map._map.anondata[a.mmap.va]),
+      a.mmap.va,
+      Store(Fs.proc0.va_map._map.anondata,
+            a.mmap.va,
+            Fs.proc0.va_map._map.anondata[a.mmap.va])[a.mmap.va]), 'inum': Store(Store(Fs.proc0.va_map._map.inum,
+            a.mmap.va,
+            Fs.proc0.va_map._map.inum[a.mmap.va]),
+      a.mmap.va,
+      Store(Fs.proc0.va_map._map.inum,
+            a.mmap.va,
+            Fs.proc0.va_map._map.inum[a.mmap.va])[a.mmap.va])}      
+            
+            
+            
+--------------------------------------------------------------------------
     
 tstruct(**fields):
     name = "SStruct_" + "_".join(fields.keys())
@@ -513,7 +732,32 @@ tbag(valueType):
     mapType = tmap(valueType, SInt)
     base = (tstruct(_imap = mapType),SBagBase)
 
-???
+tuninterpreted(name):
+    """Return a new uninterpreted symbolic type.
+
+    This type is inhabited by an unbounded number of distinct
+    constants.
+    """
+    return type(name, (SUninterpretedBase, SymbolicConst),
+                {"__z3_sort__": z3.DeclareSort(name)})
+
+tenum(name, vals):
+   """Return a symbolic constant enumeration type called 'name' with
+    the given values.  'vals' must be a list of strings or a string of
+    space-separated names.  The returned type will have a class field
+    corresponding to each concrete value and inherit from SEnumBase
+    and SymbolicConst."""
+  sort, consts = z3.EnumSort(name, vals)
+  base=type(name, (SEnumBase, SymbolicConst), fields) 
+注意：SEnumBase和STupleBase用到了z3.Datatype，
+class SEnumBase(SExpr):
+    __ref_type__ = z3.DatatypeRef
+
+且ttuple还直接调用了,我理解由于z3.Datatype用处不大或效率很低，所以这里基本没用
+    sort = z3.Datatype(name)
+
+                   
+??? 用来包装某些不需要在isomophism model是进行具体化的操作。
 tsynonym(name, baseType):
     type(name, (SSynonymBase,),
                 {"_baseType" : baseType, "__z3_sort__" : baseType._z3_sort()})
@@ -529,7 +773,21 @@ tconstmap(indexType, valueType):
     sort = z3.ArraySort(indexType._z3_sort(), valueType._z3_sort())
     name = "SConstMap_%s_%s" % (indexType.__name__, valueType.__name__)
     return type(name, (SConstMapBase, SymbolicConst), {"__z3_sort__" : sort})
+注意：tconstmap 直接用到了z3.ArraySort
+而对应的SConstMapBase用到了
+    __ref_type__ = z3.ArrayRef
+    z3.K(cls._z3_sort().domain(), unwrap(value)), None)
+    z3.Store(unwrap(self), unwrap(index), unwrap(value)),
 
+
+ttuple(name, *types):
+    """Return a symbolic constant named tuple type with the given
+    fields.  Each 'type' argument must be a pair of name and type.
+    The returned type will inherit from STupleBase and SymbolicConst
+    and will have properties for retrieving each component of the
+    tuple."""
+    fields[fname] = locals_dict[fname]
+    type(name, (STupleBase, SymbolicConst), fields)
 ==========
 simsym.py L1155
 # Helpers for tracking "internal" variables

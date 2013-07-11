@@ -605,3 +605,94 @@ Atomicity
 ===========
 An operation is atomic if no intermediate states can be observed. It seems to jump directly from the initial state
 to the result state. 
+
+
+================
+The principle of abstraction
+================
+
+Specification
+----------------
+Consider any system. It can be thought of as having two parts: a specification
+and an implementation. The specification is a contract, in a mathematical sense
+that is stronger than the legal sense. The contract defines how the system should
+behave. We say a system is correct if the actual behavior of the system is in accord
+with the contract. If the system behaves differently, then we say it fails.
+
+implementation
+---------------
+The implementation is how the system is constructed,
+as seen from the inside. 
+
+
+
+Sharing/Aliasing
+====================
+Sharing, also known as aliasing, happens when two identifiers X and Y refer to the
+same cell. We say that the two identifiers are aliases of each other. Changing the
+content of X also changes the content of Y. 
+
+
+Token equality and structure equality
+=====================================
+structure equality
+-----------------
+Two values are equal if they have the same structure. For example:
+    X=person(age:25 name:"George")
+    Y=person(age:25 name:"George")
+    {Browse X==Y}
+This displays true. We call this structure equality. 
+
+
+token equality
+--------------
+Two cells are not equal if they have the same content, rather they are
+equal if they are the same cell!
+For example, let us create two cells:
+    X={NewCell 10}
+    Y={NewCell 10}
+These are different cells with different identities. The following comparison:
+    {Browse X==Y}
+displays false. It is logical that the cells are not equal, since changing the content
+of one cell will not change the content of the other. However, our two cells happen
+to have the same content:
+    {Browse @X==@Y}
+This displays true. This is a pure coincidence
+
+
+=====================
+6.4 Data abstraction
+=====================
+A data abstraction is a way of using data in abstract fashion, i.e., we can use the
+data without having to deal with its implementation. A data abstraction consists
+of a set of instances that can be used according to certain rules, called its interface.
+We will sometimes use the term “type” loosely to refer to a data abstraction.
+
+Tuples. 
+--------------
+Tuples are the most restrictive, but they are fastest and require least
+memory. Their indices are consecutive positive integers from 1 to a maximum N
+which is specified when the tuple is created. They can be used as arrays when the
+contents do not have to be changed. Accessing a tuple field is extremely efficient
+because the fields are stored consecutively.
+
+Records. 
+-------------
+Records are more flexible than tuples because the indices can be any
+literals (atoms or names) and integers. The integers do not have to be consecutive.
+The record type, i.e., the label and arity (set of indices), is specified when the record
+is created. Accessing record fields is nearly as efficient as accessing tuple fields. 
+
+Arrays
+----------
+An array is a mapping from integers to partial values. The domain is a set of
+consecutive integers from a lower bound to an upper bound. The domain is given
+when the array is declared and cannot be changed afterward. The range of the
+mapping can be changed. 
+
+Dictionaries
+------------
+A dictionary is a mapping from simple constants (atoms, names, or integers) to
+partial values. Both the domain and the range of the mapping can be changed. An
+item is a pair of one simple constant and a partial value. Items can be accessed,
+changed, added, or removed during execution.
