@@ -112,7 +112,10 @@ Precedes:
     constructed, it of course breaks test case generation.    
 
 
-比如执行到一定阶段，这个dict为：
+比如执行到一定阶段，这个dict为： 
+注意，发现这个dict是SStructBase类的mkKvaluea函数生成的！！！请看_new_lvalue的实现
+而getter和setter的定义也在_new_lvalue函数中
+
 {'root_dir': {'_valid': Fs.root_dir._valid, '_map': Fs.root_dir._map}, 'pipes': {'nread': Fs.pipes.nread, 'data': {'_len': Fs.pipes.data._len, '_vals': Fs.pipes.data._vals}}, 'i_map': {'nlink': Fs.i_map.nlink, 'atime': Fs.i_map.atime, 'data': {'_len': Fs.i_map.data._len, '_vals': Fs.i_map.data._vals}, 'ctime': Fs.i_map.ctime, 'mtime': Fs.i_map.mtime}, 'proc1': {'va_map': {'_valid': Fs.proc1.va_map._valid, '_map': {'writable': Fs.proc1.va_map._map.writable, 'anon': Fs.proc1.va_map._map.anon, 'off': Fs.proc1.va_map._map.off, 'anondata': Fs.proc1.va_map._map.anondata, 'inum': Fs.proc1.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc1.fd_map._valid, '_map': {'ispipe': Fs.proc1.fd_map._map.ispipe, 'pipewriter': Fs.proc1.fd_map._map.pipewriter, 'off': Fs.proc1.fd_map._map.off, 'pipeid': Fs.proc1.fd_map._map.pipeid, 'inum': Fs.proc1.fd_map._map.inum}}}, 'proc0': {'va_map': {'_valid': Store(Fs.proc0.va_map._valid, a.mmap.va, True), '_map': {'writable': Store(Store(Fs.proc0.va_map._map.writable,
             a.mmap.va,
             Fs.proc0.va_map._map.writable[a.mmap.va]),
@@ -228,6 +231,18 @@ isomorphism_types = {
  SymbolicConst: return cls._wrap(getter(), model) 直接返回值，而不是创建一个对象
  SmapBase: 有 obj = cls.__new__(cls)语句
  SstructBase: 有 obj = cls.__new__(cls)语句 
+ 
+ 注意在SstructBase的 _wrap_lvalue函数中，有
+        object.__setattr__(obj, "_getter", getter)
+        object.__setattr__(obj, "_setter", setter)
+        object.__setattr__(obj, "_model", model)
+ 根据http://docs.python.org/2/reference/datamodel.html的介绍
+ object.__setattr__(self, name, value)¶
+Called when an attribute assignment is attempted. This is called instead of the normal mechanism (i.e. store the value in the instance dictionary). name is the attribute name, value is the value to be assigned to it.
+
+If __setattr__() wants to assign to an instance attribute, it should not simply execute self.name = value — this would cause a recursive call to itself. Instead, it should insert the value in the dictionary of instance attributes, e.g., self.__dict__[name] = value. For new-style classes, rather than accessing the instance dictionary, it should call the base class method with the same name, for example, object.__setattr__(self, name, value).
+
+所以，我们可以通过 object.__dict__看到所有这些属性       
  
  而调用_wrap_lvalue的地方有三处：
  Symbolic的成员函数_new_lvalue，调用了obj = cls._wrap_lvalue(lambda: val[0], setter, model)
@@ -1093,3 +1108,84 @@ for callset in itertools.combinations_with_replacement(calls, args.ncomb):
                        simsym.symand([simsym.symor(condlist), cannot_commute]))
 
 test_writer.finish()
+
+
+
+=======
+对munmap的处理
+
+执行下面语句前
+测试 执行 self._getter()可得
+{'root_dir': {'_valid': Fs.root_dir._valid, '_map': Fs.root_dir._map}, 'pipes': {'nread': Fs.pipes.nread, 'data': {'_len': Fs.pipes.data._len, '_vals': Fs.pipes.data._vals}}, 'i_map': {'nlink': Fs.i_map.nlink, 'atime': Fs.i_map.atime, 'data': {'_len': Fs.i_map.data._len, '_vals': Fs.i_map.data._vals}, 'ctime': Fs.i_map.ctime, 'mtime': Fs.i_map.mtime}, 'proc1': {'va_map': {'_valid': Fs.proc1.va_map._valid, '_map': {'writable': Fs.proc1.va_map._map.writable, 'anon': Fs.proc1.va_map._map.anon, 'off': Fs.proc1.va_map._map.off, 'anondata': Fs.proc1.va_map._map.anondata, 'inum': Fs.proc1.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc1.fd_map._valid, '_map': {'ispipe': Fs.proc1.fd_map._map.ispipe, 'pipewriter': Fs.proc1.fd_map._map.pipewriter, 'off': Fs.proc1.fd_map._map.off, 'pipeid': Fs.proc1.fd_map._map.pipeid, 'inum': Fs.proc1.fd_map._map.inum}}}, 'proc0': {'va_map': {'_valid': Fs.proc0.va_map._valid, '_map': {'writable': Fs.proc0.va_map._map.writable, 'anon': Fs.proc0.va_map._map.anon, 'off': Fs.proc0.va_map._map.off, 'anondata': Fs.proc0.va_map._map.anondata, 'inum': Fs.proc0.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc0.fd_map._valid, '_map': {'ispipe': Fs.proc0.fd_map._map.ispipe, 'pipewriter': Fs.proc0.fd_map._map.pipewriter, 'off': Fs.proc0.fd_map._map.off, 'pipeid': Fs.proc0.fd_map._map.pipeid, 'inum': Fs.proc0.fd_map._map.inum}}}}
+
+这其实就是Fs对象的val值
+执行下面语句后，差别只有 ...{'va_map': {'_valid': Store(Fs.proc0.va_map._valid, a.munmap.va, False), ...
+
+ del self.getproc(pid).va_map[va]
+ 实际上调用的是SDictBase类的  __delitem__  :        self._valid[key] = False
+ 
+del self.getproc(pid).va_map[va]
+ -->symtypes. L56    def __delitem__(self, key):  self._valid[key] = False
+    -->simsym. L564  self._getter(), unwrap(val)))
+        -->simsym.L653  lambda val: self.__setattr__(name, val),
+            -->simsym. L661    self._setter(cval) 
+                -->simsym.L653     lambda val: self.__setattr__(name, val), 
+                    -->simsym.L661         self._setter(cval)
+                        -->simsym.L653     lambda val: self.__setattr__(name, val), 
+                            -->simsym. L661    self._setter(cval) 
+                                -->simsym.L69  val[0] = nval
+                                
+del self.getproc(pid).va_map[va]
+ -->symtypes. L56    def __delitem__(self, key):  self._valid[key] = False
+    -->simsym. L564  self._getter(), unwrap(val)))
+         self=<simsym.SMap_SVa_SBool object at 0x3450f10>  val= False
+
+        -->simsym.L653  lambda val: self.__setattr__(name, val),
+             self=<symtypes.SDict_SVa_SStruct_writable_anon_off_anondata_inum object at 0x3450e90>
+             name='_valid'
+             val=ArrayRef: Store(Fs.proc0.va_map._valid, a.munmap.va, False)
+
+            -->simsym. L661    self._setter(cval) 
+                self=<symtypes.SDict_SVa_SStruct_writable_anon_off_anondata_inum object at 0x3450e90>
+                name='_valid'
+                val=ArrayRef: Store(Fs.proc0.va_map._valid, a.munmap.va, False)
+                cval={'_valid': Store(Fs.proc0.va_map._valid, a.munmap.va, False), '_map': {'writable': Fs.proc0.va_map._map.writable, 'anon': Fs.proc0.va_map._map.anon, 'off': Fs.proc0.va_map._map.off, 'anondata': Fs.proc0.va_map._map.anondata, 'inum': Fs.proc0.va_map._map.inum}}
+
+                -->simsym.L653     lambda val: self.__setattr__(name, val), 
+                   self=<simsym.SStruct_va_map_fd_map object at 0x3450f50>
+                   name='va_map'
+                   val={'_valid': Store(Fs.proc0.va_map._valid, a.munmap.va, False), '_map': {'writable': Fs.proc0.va_map._map.writable, 'anon': Fs.proc0.va_map._map.anon, 'off': Fs.proc0.va_map._map.off, 'anondata': Fs.proc0.va_map._map.anondata, 'inum': Fs.proc0.va_map._map.inum}}
+                   
+                    -->simsym.L661         self._setter(cval)
+                    self=<simsym.SStruct_va_map_fd_map object at 0x3450f50>
+                    name='va_map'
+                    val={'_valid': Store(Fs.proc0.va_map._valid, a.munmap.va, False), '_map': {'writable': Fs.proc0.va_map._map.writable, 'anon': Fs.proc0.va_map._map.anon, 'off': Fs.proc0.va_map._map.off, 'anondata': Fs.proc0.va_map._map.anondata, 'inum': Fs.proc0.va_map._map.inum}}
+                    cval={'va_map': {'_valid': Store(Fs.proc0.va_map._valid, a.munmap.va, False), '_map': {'writable': Fs.proc0.va_map._map.writable, 'anon': Fs.proc0.va_map._map.anon, 'off': Fs.proc0.va_map._map.off, 'anondata': Fs.proc0.va_map._map.anondata, 'inum': Fs.proc0.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc0.fd_map._valid, '_map': {'ispipe': Fs.proc0.fd_map._map.ispipe, 'pipewriter': Fs.proc0.fd_map._map.pipewriter, 'off': Fs.proc0.fd_map._map.off, 'pipeid': Fs.proc0.fd_map._map.pipeid, 'inum': Fs.proc0.fd_map._map.inum}}}
+                    
+                        -->simsym.L653     lambda val: self.__setattr__(name, val), 
+                          self=<fs.Fs object at 0x30e2ed0>
+                          name='proc0'
+                          val={'va_map': {'_valid': Store(Fs.proc0.va_map._valid, a.munmap.va, False), '_map': {'writable': Fs.proc0.va_map._map.writable, 'anon': Fs.proc0.va_map._map.anon, 'off': Fs.proc0.va_map._map.off, 'anondata': Fs.proc0.va_map._map.anondata, 'inum': Fs.proc0.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc0.fd_map._valid, '_map': {'ispipe': Fs.proc0.fd_map._map.ispipe, 'pipewriter': Fs.proc0.fd_map._map.pipewriter, 'off': Fs.proc0.fd_map._map.off, 'pipeid': Fs.proc0.fd_map._map.pipeid, 'inum': Fs.proc0.fd_map._map.inum}}} 
+                           
+                            -->simsym. L661    self._setter(cval) 
+                              self=<fs.Fs object at 0x30e2ed0>
+                              name='proc0'
+                              val={'va_map': {'_valid': Store(Fs.proc0.va_map._valid, a.munmap.va, False), '_map': {'writable': Fs.proc0.va_map._map.writable, 'anon': Fs.proc0.va_map._map.anon, 'off': Fs.proc0.va_map._map.off, 'anondata': Fs.proc0.va_map._map.anondata, 'inum': Fs.proc0.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc0.fd_map._valid, '_map': {'ispipe': Fs.proc0.fd_map._map.ispipe, 'pipewriter': Fs.proc0.fd_map._map.pipewriter, 'off': Fs.proc0.fd_map._map.off, 'pipeid': Fs.proc0.fd_map._map.pipeid, 'inum': Fs.proc0.fd_map._map.inum}}}
+                              cval={'root_dir': {'_valid': Fs.root_dir._valid, '_map': Fs.root_dir._map}, 'pipes': {'nread': Fs.pipes.nread, 'data': {'_len': Fs.pipes.data._len, '_vals': Fs.pipes.data._vals}}, 'i_map': {'nlink': Fs.i_map.nlink, 'atime': Fs.i_map.atime, 'data': {'_len': Fs.i_map.data._len, '_vals': Fs.i_map.data._vals}, 'ctime': Fs.i_map.ctime, 'mtime': Fs.i_map.mtime}, 'proc1': {'va_map': {'_valid': Fs.proc1.va_map._valid, '_map': {'writable': Fs.proc1.va_map._map.writable, 'anon': Fs.proc1.va_map._map.anon, 'off': Fs.proc1.va_map._map.off, 'anondata': Fs.proc1.va_map._map.anondata, 'inum': Fs.proc1.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc1.fd_map._valid, '_map': {'ispipe': Fs.proc1.fd_map._map.ispipe, 'pipewriter': Fs.proc1.fd_map._map.pipewriter, 'off': Fs.proc1.fd_map._map.off, 'pipeid': Fs.proc1.fd_map._map.pipeid, 'inum': Fs.proc1.fd_map._map.inum}}}, 'proc0': {'va_map': {'_valid': Store(Fs.proc0.va_map._valid, a.munmap.va, False), '_map': {'writable': Fs.proc0.va_map._map.writable, 'anon': Fs.proc0.va_map._map.anon, 'off': Fs.proc0.va_map._map.off, 'anondata': Fs.proc0.va_map._map.anondata, 'inum': Fs.proc0.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc0.fd_map._valid, '_map': {'ispipe': Fs.proc0.fd_map._map.ispipe, 'pipewriter': Fs.proc0.fd_map._map.pipewriter, 'off': Fs.proc0.fd_map._map.off, 'pipeid': Fs.proc0.fd_map._map.pipeid, 'inum': Fs.proc0.fd_map._map.inum}}}}
+                              
+                            
+                                -->simsym.L69  val[0] = nval 
+                                val=[{'root_dir': {'_valid': Fs.root_dir._valid, '_map': Fs.root_dir._map}, 'pipes': {'nread': Fs.pipes.nread, 'data': {'_len': Fs.pipes.data._len, '_vals': Fs.pipes.data._vals}}, 'i_map': {'nlink': Fs.i_map.nlink, 'atime': Fs.i_map.atime, 'data': {'_len': Fs.i_map.data._len, '_vals': Fs.i_map.data._vals}, 'ctime': Fs.i_map.ctime, 'mtime': Fs.i_map.mtime}, 'proc1': {'va_map': {'_valid': Fs.proc1.va_map._valid, '_map': {'writable': Fs.proc1.va_map._map.writable, 'anon': Fs.proc1.va_map._map.anon, 'off': Fs.proc1.va_map._map.off, 'anondata': Fs.proc1.va_map._map.anondata, 'inum': Fs.proc1.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc1.fd_map._valid, '_map': {'ispipe': Fs.proc1.fd_map._map.ispipe, 'pipewriter': Fs.proc1.fd_map._map.pipewriter, 'off': Fs.proc1.fd_map._map.off, 'pipeid': Fs.proc1.fd_map._map.pipeid, 'inum': Fs.proc1.fd_map._map.inum}}}, 'proc0': {'va_map': {'_valid': Store(Fs.proc0.va_map._valid, a.munmap.va, False), '_map': {'writable': Fs.proc0.va_map._map.writable, 'anon': Fs.proc0.va_map._map.anon, 'off': Fs.proc0.va_map._map.off, 'anondata': Fs.proc0.va_map._map.anondata, 'inum': Fs.proc0.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc0.fd_map._valid, '_map': {'ispipe': Fs.proc0.fd_map._map.ispipe, 'pipewriter': Fs.proc0.fd_map._map.pipewriter, 'off': Fs.proc0.fd_map._map.off, 'pipeid': Fs.proc0.fd_map._map.pipeid, 'inum': Fs.proc0.fd_map._map.inum}}}}]     
+                                
+                                nval={'root_dir': {'_valid': Fs.root_dir._valid, '_map': Fs.root_dir._map}, 'pipes': {'nread': Fs.pipes.nread, 'data': {'_len': Fs.pipes.data._len, '_vals': Fs.pipes.data._vals}}, 'i_map': {'nlink': Fs.i_map.nlink, 'atime': Fs.i_map.atime, 'data': {'_len': Fs.i_map.data._len, '_vals': Fs.i_map.data._vals}, 'ctime': Fs.i_map.ctime, 'mtime': Fs.i_map.mtime}, 'proc1': {'va_map': {'_valid': Fs.proc1.va_map._valid, '_map': {'writable': Fs.proc1.va_map._map.writable, 'anon': Fs.proc1.va_map._map.anon, 'off': Fs.proc1.va_map._map.off, 'anondata': Fs.proc1.va_map._map.anondata, 'inum': Fs.proc1.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc1.fd_map._valid, '_map': {'ispipe': Fs.proc1.fd_map._map.ispipe, 'pipewriter': Fs.proc1.fd_map._map.pipewriter, 'off': Fs.proc1.fd_map._map.off, 'pipeid': Fs.proc1.fd_map._map.pipeid, 'inum': Fs.proc1.fd_map._map.inum}}}, 'proc0': {'va_map': {'_valid': Store(Fs.proc0.va_map._valid, a.munmap.va, False), '_map': {'writable': Fs.proc0.va_map._map.writable, 'anon': Fs.proc0.va_map._map.anon, 'off': Fs.proc0.va_map._map.off, 'anondata': Fs.proc0.va_map._map.anondata, 'inum': Fs.proc0.va_map._map.inum}}, 'fd_map': {'_valid': Fs.proc0.fd_map._valid, '_map': {'ispipe': Fs.proc0.fd_map._map.ispipe, 'pipewriter': Fs.proc0.fd_map._map.pipewriter, 'off': Fs.proc0.fd_map._map.off, 'pipeid': Fs.proc0.fd_map._map.pipeid, 'inum': Fs.proc0.fd_map._map.inum}}}} 
+                                
+                                
+                                
+===========
+创建类的新ojb的三个地方
+grep -Hn 'cls.__new__(cls)' *.py
+simsym.py:286:MetaZ3Wrapper._wrap:        obj = cls.__new__(cls)
+
+simsym.py:529: SMapBase._wrap_lvalue:      obj = cls.__new__(cls)
+simsym.py:626: SStructBase._wrap_lvalue:       obj = cls.__new__(cls)  
+                                                         

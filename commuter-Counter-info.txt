@@ -1,0 +1,121 @@
+代码：
+===================
+import simsym
+import model
+
+class Counter(simsym.tstruct(counter=simsym.SInt)):
+    __slots__ = ["counter"]
+
+    def _declare_assumptions(self, assume):
+        super(Counter, self)._declare_assumptions(assume)
+        simsym.assume(self.counter >= 0)
+
+    @model.methodwrap()
+    def sys_inc(self):
+        self.counter =1
+        self.counter = self.counter + 1
+        simsym.assume(self.counter == 2)
+    @model.methodwrap()
+    def sys_dec(self):
+        simsym.assume(self.counter > 0)
+        self.counter = self.counter - 1
+
+    @model.methodwrap()
+    def sys_iszero(self):
+        return self.counter == 0
+
+model_class = Counter
+model_functions = [
+    Counter.sys_inc,
+    Counter.sys_dec,
+    Counter.sys_iszero,
+]
+
+
+
+id(self.counter)= 46859856
+<Ast object at 0x282ac20>
+
+type(self.counter)={MetaZ3Wrapper}<class 'simsym.SInt'>
+
+id(self)=43659632
+type(self)=<class 'counter.Counter'> baseclass is SStructBase
+
+dir(self)
+['__class__', '__delattr__', '__dict__', '__doc__', '__eq__', '__format__', '__getattr__', '__getattribute__', '__hash__', '__init__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__slots__', '__str__', '__subclasshook__', '__weakref__', '__z3_sort__', '_declare_assumptions', '_fields', '_getter', '_model', '_new_lvalue', '_setter', '_wrap_lvalue', '_z3_sort', '_z3_value', 'counter', 'eq', 'sys_dec', 'sys_inc', 'sys_iszero', 'var']
+
+
+对sys_inc中  self.counter=1 的处理过程
+slef.counter=1
+========================================
+  --> SStructBase. __setattr__(self, name, val)   name={str}'counter' val={int}1
+        name is in self._fields 
+        (在初始化Counter类实例时，有     __slots__ = ["counter"]，而_fields根据 slots创建了一个对应的dict {'name': class }) ,所以  self._fields={'counter': <class 'simsym.SInt'>}
+        
+        cval = self._getter()
+        这里的_getter是位于Symbolic._new_lvalue函数中的语句：
+           obj = cls._wrap_lvalue(lambda: val[0], setter, model)
+           在这里面，设置了 _getter其实就是 val[0], _setter其实就是 setter，上面定义了这个函数，内容就是 val[0]=nval]
+           val[0]是一个dict内容为{'counter':ArithRef: Counter.counter}   ArithRef: Counter.counter是由SStructBase.var函数中定义的mkValue 完成对此创建的的。...return z3.Const(strname, sort)
+           
+           而cls._wrap_lvalue其实调用的是SStructBase._wrap_lvalue(cls, getter, setter, model)
+           在此函数中，有 
+                    object.__setattr__(obj, "_getter", getter)
+                    object.__setattr__(obj, "_setter", setter)
+                    object.__setattr__(obj, "_model", model)
+           所以，这里指定了obj的_getter()是啥，即 val[0]
+         所以 cval= {dict}{'counter': ArithRef: Counter.counter}
+                        
+        cval[name] = unwrap(val)
+        本来 cval[name]是一个z3.ArithRef obj，名字是Counter.counter， 但执行上面一句后
+        cval[name]={int}1 了。且在执行过程中对z3.ArithRef obj执行了del处理，也就是减少了它的引用计数
+        
+        self._setter(cval) 实际调用了SStruct.setter
+        结果把 Counter obj中的val[0]设置成为了{dict}{'counter': int 1}
+ self._fields定义了相关名字的 commuter类型，
+ self.val[0]保存了这个相关名字对应的z3 XXXref 的obj       
+ 
+ ================
+ 继续执行
+ self.counter = self.counter + 1
+    --> SStructBase.__getattr__(self, name) self=<counter.Counter object at 0x1741248>, name='counter'
+       -->位于 SymbolicConst._wrap_lvalue中设定此counter.Counter类的getter()函数， simsym.py L191
+          --> 调用 SStructBase.__getatter__中的 self._getter()[name]，simsym.py L652
+             -->  SStructBase中_new_lvalue的 val[0]  val[0][name]{int}1, 结果返回 {int}1  simsym.py L70
+             
+              
+       -->回到L191,继续执行 cls._wrap(getter(), model) ，这里只是说getter()返回了一个1
+              这里的cls={MetaZ3Wrapper}<class 'simsym.SInt'>
+            -->调用MetaZ3Wrapper._wrap函数
+               这里由于z3ref={int}1，不是一个z3表达式，且是的MetaZ3Wrapper, __pass_type__所以自己返回 1即结束了。
+               注意，在下面两个类定义中，设置了__pass_type__
+               class SInt(SArith, SymbolicConst):
+                    __pass_type__ = int
+               class SBool(SExpr, SymbolicConst):
+                    __pass_type__ = bool            
+           到这里L191执行完毕，返回 1 
+   到此语句左边表达式self.counter处理完毕，返回1。开始执行赋值的左边了！！！
+   ---------------------------------------------------    
+   --> SStructBase.__setattr__(self, name, val)  self=<counter.Counter object at 0x1741248> name='counter' val=2
+    注意，这其中python已经完成了左边的计算，即 1+1 =2 然后开始赋值
+        cval = self._getter() 
+        类似上面的处理，读出SStructBase中_new_lvalue的 val[0] 为 {dict}{'counter': int 1}
+        cval[name] = unwrap(val)
+        类似上面的处理， cval{'counter': int 2}        
+        self._setter(cval)
+        类似上面的处理，实际调用了SStruct在_new_lvalue中定义的setter函数 L68 
+        结果把 Counter obj中的val[0]设置成为了{dict}{'counter': int 2}
+    ---------------------------------------------------
+    这里由于counter其实保存的值为2, 所以，如果执行
+    simsym.assume(self.counter == 2)
+    会有对self.counter的__getattr__的处理过程，且返回2
+    故python可直接判断为True，所以simsym.assume直接就返回了。             
+    
+    
+ 对于基本类型比如SBool等，有一个_v属性，保存了它对应的z3 obj   
+        
+        
+        
+        
+        
+        

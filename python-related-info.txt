@@ -124,3 +124,107 @@ class Square(object):
   @property
   def perimeter(self):
     return self.side 
+    
+对python type的理解
+====================
+http://www.cafepy.com/article/python_types_and_objects/python_types_and_objects.html
+
+• There are two kinds of objects in Python:
+    1. Type objects - can create instances, can be subclassed.
+    2. Non-type objects - cannot create instances, cannot be subclassed.
+• <type 'type'> and <type 'object'> are two primitive objects of the system.
+• objectname.__class__ exists for every object and points the type of the object.
+• objectname.__bases__ exists for every type object and points the superclasses of the
+object. It is empty only for <type 'object'>.
+• To create a new object using subclassing, we use the class statement and specify the
+bases (and, optionally, the type) of the new object. This always creates a type object.
+• To create a new object using instantiation, we use the call operator (()) on the type object
+we want to use. This may create a type or a non-type object, depending on which type
+object was used.
+• Some non-type objects can be created using special Python syntax. For example, [1, 2,
+3] creates an instance of <type 'list'>.
+• Internally, Python always uses a type object to create a new object. The new object created
+is an instance of the type object used. Python determines the type object from a class
+statement by looking at the bases specified, and finding their types.
+• issubclass(A,B) (testing for superclass-subclass relationship) returns True iff:
+1. B is in A.__bases__, or
+2. issubclass(Z,B) is true for any Z in A.__bases__.
+• isinstance(A,B) (testing for type-instance relationship) returns True iff:
+1. B is A.__class__, or
+2. issubclass(A.__class__,B) is true.
+• Squasher is really a python. (Okay, that wasn't mentioned before, but now you know.)
+
+    
+对python 属性的理解
+=======================
+
+http://fcamel-life.blogspot.com/2011/02/python-attribute-descriptor.html
+http://www.cafepy.com/article/python_types_and_objects/python_types_and_objects.html
+http://users.rcn.com/python/download/Descriptor.htm
+http://www.cafepy.com/article/python_attributes_and_methods/python_attributes_and_methods.html
+注意
+这里解释了__dict__是啥， dir函数干啥，二者的关系是啥？
+
+Attributes really sit inside a dictionary-like __dict__ in the object.
+__dict__ contains only the user-provided attributes.
+
+Ok, I admit 'user-provided attribute' is a term I made up, but I think it is useful to understand what is
+going on. Note that __dict__ is itself an attribute. We didn't set this attribute ourselves, but Python
+provides it. Our old friends __class__ and __bases__ (none which appear to be in __dict__
+either) also seem to be similar. Let's call them Python-provided attributes. Whether an attribute is
+Python-provided or not depends on the object in question (__bases__, for example, is
+Python-provided only for classes).
+
+When accessed (for e.g. print objectname.attributename), the following objects are
+searched in sequence for the attribute:
+1. The object itself (objectname.__dict__ or any Python-provided attribute of
+objectname).
+2. The object's type (objectname.__class__.__dict__). Observe that only __dict__ is
+searched, which means only user-provided attributes of the class. In other words
+objectname.__bases__ may not return anything even though
+objectname.__class__.__bases__ does exist.
+3. The bases of the object's class, their bases, and so on. (__dict__ of each of
+objectname.__class__.__bases__). More than one base does not confuse Python,
+and should not concern us at the moment. The point to note is that all bases are searched
+until an attribute is found.
+
+If all this hunting around fails to find a suitably named attribute, Python raises an
+AttributeError. The type of the type (objectname.__class__.__class__) is never
+searched for attribute access on an object (objectname in the example).
+
+The built-in dir() function returns a list of all attributes of an object. Also look at the inspect
+module in the standard library for more functions to inspect objects.
+
+Some objects, such as built-in types and their instances (lists, tuples, etc.) do not have a
+__dict__. Consequently user-defined attributes cannot be set on them.
+
+
+
+http://www.2cto.com/kf/201209/154470.html
+1. 类属性
+    为在类定义时直接指定的属性(不是在__init__方法中)
+class Test: 
+    class_attribute1="attr-value"         
+    
+2. 实例属性
+   在__init__方法中添加的属性, 在其他位置添加也是可以的, 实际是通过setattr内置函数(调用__setattr__)完成, 另外也可以直接修改__dict__属性手动添加
+t=Test() 
+setattr(t,attr_name,attr_value) #等价于 t.attr_name=attr_value 
+t.__dict__[attr_name]=attr_value  
+
+3. 通过重写__setattr__控制属性的添加
+    该方法在setattr(t,attr_name,attr_value)或者t.attr_name=attr_value时被调用,通过重写该方法可以达到控制属性添加的功能
+[python]
+class Test: 
+    def __setattr__(self,name,value): 
+        if name=="key": 
+            self.__dict__[name]=value 
+这样, 在通过setattr(t,attr_name,attr_value)或者t.attr_name=attr_value添加新属性时, 就只能添加名称为key的属性了,
+实际上这种控制是不完整的, 因为可以通过t.__dict__[attr_name]=attr_value的方式直接添加!            
+
+4. 属性的访问顺序
+    "instance.attr_name"访问实例属性时, 首先在instance.__dict__中查找, 如果找到返回对应值,否则在
+    instance.__class__.__dict__中查找, 也就是在类属性中查找, 如果找到, 返回对应值, 否则产生attributeError异常
+
+
+通常, 每个实例对象 x 都拥有一个字典 x.__dict__. python通过此字典允许你绑定任意属性给 x 实例. 定义一个名为 __slots__ 的类属性可以有效减少每个实例占用的内存数量. __slots__ 是一个字符串序列(通常是一个tuple).  当类 C 拥有 __slots__属性, x 的直接子类就没有 x.__dict__属性. 如果试图绑定一个 __slots__ 中不存在属性给实例的话, 就会引发异常. __slots__属性虽然令你失去绑定任意属性的方便, 却能有效节省每个实例的内存消耗, 有助于生成小而精干的实例对象.                
