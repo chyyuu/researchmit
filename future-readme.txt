@@ -5,3 +5,5 @@
 1.4 security of driver (based on commutativity?)
 1.5 IO optimization of driver?
 
+上述工作的原则：最小功能集合即可，无需更多功能集合，更多的集合意味着资源的占用和潜在的不安全因素。
+这与安全设计里面的“最小权限原则类似”
