@@ -1,0 +1,61 @@
+了解到pomodoro 时间管理比较有意思，
+
+想自己写一个python版本的pomodoro，便于学习和管理，能够把log信息放到git server上，这样可以随时同步。所以，可能还需要了解python如果访问git
+
+
+就下载了几个python版本的pomodoro学习，有两个都很短。
+在 ~/mit/pythonstudy/pomodoro/ 目录下的ticker.py, ticker-console.py， ticker3.py
+
+ticker.py
+===============
+使用了pyosd, 为此需要安装 lib-xosd 并下载pyosd安装  http://ichi2.net/pyosd/
+pyosd在选择字体方面还不太清楚，一个简单的方法是用 fixed font
+    osd = pyosd.osd("fixed","white")
+    
+还用了subprocess
+
+ticker-console.py
+===============
+使用了cvs读写库，也比较有意思
+cvs:
+http://docs.python.org/2/library/csv.html
+http://swaywang.blogspot.com/2012/05/pythoncsv.html
+http://www.pythonclub.org/python-files/csv
+
+ticker3.py
+===============
+用到了notify机制，有图形显示
+
+notify:
+http://home.gna.org/py-notify/
+http://home.gna.org/py-notify/tutorial.html
+
+需要安装
+python-distutils-extra
+
+tomate
+===============
+比较复杂的是tomate，
+http://iloveubuntu.net/apply-time-management-oriented-pomodoro-technique-handy-appindicator-tomate
+https://launchpad.net/tomate
+
+这个花了不少时间，主要是setup.py install有错，找了半天，修改了几个地方
+class InstallAndUpdateDataDirectory(DistUtilsExtra.auto.install_auto):中
+   self.root='/usr/local/'
+...
+        self.prefix='/'
+...        
+        
+def move_desktop_file(root, target_data, prefix):中
+...
+        try:
+            #os.makedirs(desktop_path)
+            os.rename(old_desktop_file, desktop_file)
+            #os.rmdir(old_desktop_path)
+...
+
+安装了一些库
+sudo apt-get install python-distutils-extra 
+sudo apt-get install libgranite-dev      
+https://code.launchpad.net/granite
+      
